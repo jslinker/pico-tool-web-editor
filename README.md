@@ -2,7 +2,7 @@
 
 A planned GitHub Pages interface for [picotool-js](https://github.com/jslinker/picotool-js). Select local PICO-8 cartridges, inspect and manipulate them in the browser, then download the results. Processing will happen locally without uploading cartridges or requiring PICO-8, Python, or a backend.
 
-**Status:** feature inventory and engine dependency only. The website is not implemented or deployed. Unchecked items are browser TODOs, not missing Node CLI features.
+**Status:** static interface prototype and engine dependency only. The controls in `index.html` are visual stubs; cartridge processing and deployment are not implemented. Unchecked items are browser TODOs, not missing Node CLI features.
 
 **Architecture goal:** building this interface should also distill picotool-js into a complete, platform-agnostic JavaScript engine. Shared cartridge processing belongs in the engine; browser UI, file selection, downloads, and hosting belong here. Resolve portability gaps in the sibling `../picotool-js` checkout rather than duplicating engine logic or maintaining a reduced browser API. See [AGENTS.md](AGENTS.md) for guidance on working across both repositories.
 
@@ -20,6 +20,26 @@ npm run p8tool -- build --lua path/to/main.lua output.p8
 ```
 
 Development setup uses Node.js 26.7.0 and npm 11.19.0; upstream does not declare a minimum Node version. Visitors to the future site will only need a browser.
+
+## Framework-free JavaScript entry points
+
+[`app.js`](app.js) exposes one function for each of the ten supported CLI commands. The functions are independent of the DOM and UI controls, so they can be called directly from Node tests, browser developer tools, or future interface event handlers.
+
+```js
+const PicoToolWeb = require("./app.js");
+
+await PicoToolWeb.cli.stats({ cartridges, csv: true });
+await PicoToolWeb.cli.luamin({ cartridges, keepAllNames: true });
+await PicoToolWeb.executeCliCommand("build", buildRequest);
+```
+
+The same API is available in the browser as `window.PicoToolWeb`. Entry points are grouped under `commandGroups.inspectAndSearch`, `commandGroups.rewriteMinifyAndFormat`, and `commandGroups.buildAndCombine`, while `cli` provides a flat command registry. Until the portable engine is connected, each command returns a structured `NOT_IMPLEMENTED` result.
+
+Tests can inject a DOM-free adapter with `createPicoToolWebApi({ engineAdapter })`; adapter methods use the exact CLI command names. Run the entry-point contract tests with:
+
+```sh
+npm test
+```
 
 ## Node CLI inventory and browser TODOs
 
