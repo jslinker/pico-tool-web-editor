@@ -5,10 +5,16 @@
   "description": "Browser interface for picotool-js cartridge processing",
   "license": "MIT",
   "scripts": {
+    "build": "npm run build:engine && npm run build:site",
+    "build:engine": "node tools/build-engine.mjs",
+    "build:site": "node tools/prepare-site.mjs",
     "p8tool": "p8tool",
-    "test": "node --test"
+    "test": "npm run build && node --test"
   },
   "dependencies": {
     "@pico8-studio/picotool": "git+https://github.com/jslinker/picotool-js.git#4cecfafe1291e4f4d874dcf1082c55f870ee0fa3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }

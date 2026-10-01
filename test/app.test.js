@@ -84,6 +84,27 @@ test("routes direct and generic calls through an injected engine adapter", async
   ]);
 });
 
+test("forwards the complete CLI request unchanged for every command", async () => {
+  const calls = [];
+  const adapter = Object.fromEntries(EXPECTED_COMMANDS.map((command) => [command, (request) => {
+    calls.push([command, request]);
+    return { ok: true, command, output: { name: `${command}.out`, bytes: new Uint8Array([1, 2]) } };
+  }]));
+  const api = PicoToolWeb.createPicoToolWebApi({ engineAdapter: adapter });
+  const requests = EXPECTED_COMMANDS.map((command) => ({ command, cartridges: [{ name: "game.p8", bytes: new Uint8Array([7]) }],
+    csv: true, showLineNumbers: true, pureLua: true, listFiles: true, keepAllNames: true,
+    keepNamesBytes: new Uint8Array([35, 32, 120]), indentwidth: 4, overwrite: true,
+    pattern: "print", outputName: "game.p8.png", sources: { lua: { name: "main.lua" } }, empty: ["sfx"] }));
+
+  const results = await Promise.all(EXPECTED_COMMANDS.map((command, index) => api.executeCliCommand(command, requests[index])));
+  assert.deepEqual(calls, EXPECTED_COMMANDS.map((command, index) => [command, requests[index]]));
+  for (const [index, result] of results.entries()) {
+    assert.equal(result.command, EXPECTED_COMMANDS[index]);
+    assert.equal(result.output.name, `${EXPECTED_COMMANDS[index]}.out`);
+    assert.deepEqual(Array.from(result.output.bytes), [1, 2]);
+  }
+});
+
 test("rejects unknown command names before reaching an adapter", () => {
   assert.throws(
     () => PicoToolWeb.executeCliCommand("play", {}),

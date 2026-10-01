@@ -28,6 +28,8 @@
 
     * { box-sizing: border-box; }
 
+    [hidden] { display: none !important; }
+
     html { scroll-behavior: smooth; }
 
     body {
@@ -395,7 +397,7 @@
       <span class="brand-mark">P8</span>
       <span>PICO Tool<small>cartridge workshop</small></span>
     </a>
-    <span class="document-title"><b>starfall.p8.png</b><i title="Unsaved changes"></i> Working copy</span>
+      <span class="document-title"><b id="active-file-name">No cartridge selected</b> <span id="copy-state">Local workspace</span></span>
     <span class="header-actions">
       <span class="local-status">◆ On-device</span>
       <button type="button" onclick="document.getElementById('help').showModal()">? Help</button>
@@ -405,30 +407,18 @@
   <div class="workspace" id="top">
     <aside class="sidebar" aria-label="Selected files">
       <p class="sidebar-title">Local files</p>
-      <button class="file-button" type="button">+ Select cartridges</button>
+      <button class="file-button" id="select-cartridges" type="button">+ Select cartridges</button>
+      <input id="cartridge-input" type="file" accept=".p8,.p8.png" multiple hidden>
       <p class="drop-note">or drop .p8 / .p8.png files here</p>
 
-      <div class="file-list">
-        <div class="file-item active">
-          <span class="cart-icon">P8</span>
-          <span><strong>starfall.p8.png</strong><small>Working copy · 42 KB</small></span>
-          <i class="dot" title="Modified"></i>
-        </div>
-        <div class="file-item">
-          <span class="cart-icon">P8</span>
-          <span><strong>terrain.p8</strong><small>Original · 31 KB</small></span>
-        </div>
-        <div class="file-item">
-          <span class="cart-icon">P8</span>
-          <span><strong>sounds.p8.png</strong><small>Original · 39 KB</small></span>
-        </div>
-      </div>
+      <div class="file-list" id="file-list"><p class="drop-note">Choose cartridges to begin.</p></div>
 
       <div class="side-divider"></div>
       <div class="side-actions">
-        <button type="button">↺ Restore selected original</button>
-        <button type="button">⊕ Add Lua or name list</button>
-        <button type="button">⌘ Select module folder</button>
+        <button id="add-support-file" type="button">⊕ Add Lua or name list</button>
+        <button id="select-module-folder" type="button">⌘ Select module folder</button>
+        <input id="support-file-input" type="file" accept=".lua,.txt" multiple hidden>
+        <input id="module-folder-input" type="file" accept=".lua" webkitdirectory multiple hidden>
       </div>
     </aside>
 
@@ -444,75 +434,58 @@
         <section class="section" id="inspect">
           <div class="section-heading">
             <div><p class="section-kicker">01 / Understand</p><h2>Inspect &amp; search</h2></div>
-            <p>Read every layer of a cartridge without changing it. Views are diagnostic; exports preserve original P8SCII bytes.</p>
+            <p>Read cartridge statistics, Lua listings, code structure, and regex matches with the matching CLI commands.</p>
           </div>
 
           <div class="card-grid">
             <article class="card span-4" data-cli-commands="stats">
               <div class="card-title"><h3>Cartridge statistics</h3><span class="command-tag">stats</span></div>
-              <p class="card-copy">starfall · by nova kid · code v42</p>
-              <div class="stat-grid">
-                <div class="stat"><strong>417</strong><span>lines</span></div>
-                <div class="stat"><strong>6,802</strong><span>chars</span></div>
-                <div class="stat"><strong>1,946</strong><span>tokens</span></div>
-                <div class="stat"><strong>9.1k</strong><span>compressed</span></div>
-                <div class="stat"><strong>3</strong><span>carts</span></div>
-                <div class="stat"><strong>v42</strong><span>format</span></div>
+              <p class="card-copy" id="stats-summary">Select a cartridge to calculate statistics.</p>
+              <div class="stat-grid" id="stat-grid">
+                <div class="stat"><strong>—</strong><span>lines</span></div>
+                <div class="stat"><strong>—</strong><span>chars</span></div>
+                <div class="stat"><strong>—</strong><span>tokens</span></div>
+                <div class="stat"><strong>—</strong><span>compressed</span></div>
+                <div class="stat"><strong>0</strong><span>carts</span></div>
+                <div class="stat"><strong>—</strong><span>format</span></div>
               </div>
               <div class="export-actions" style="margin-top:14px">
-                <button class="secondary-button" type="button">Download CSV</button>
-                <button type="button">Compare all</button>
+                <button class="secondary-button" id="download-csv" type="button">Download CSV</button>
               </div>
             </article>
 
             <article class="card span-8" data-cli-commands="listlua listrawlua">
               <div class="card-title"><h3>Lua viewer</h3><span class="command-tag">listlua / listrawlua</span></div>
               <div class="options">
-                <label class="radio"><input type="radio" name="lua-view" checked> Normalized</label>
-                <label class="radio"><input type="radio" name="lua-view"> Raw source</label>
-                <label class="check"><input type="checkbox" checked> Line numbers</label>
-                <label class="check"><input type="checkbox"> Convert shorthand to pure Lua</label>
-                <button class="secondary-button" type="button">Download .lua</button>
+                <label class="radio"><input type="radio" name="lua-view" value="normalized" checked> Normalized</label>
+                <label class="radio"><input type="radio" name="lua-view" value="raw"> Raw source</label>
+                <label class="check"><input id="lua-line-numbers" type="checkbox"> Line numbers</label>
+                <label class="check"><input id="lua-pure" type="checkbox"> Convert shorthand to pure Lua</label>
+                <button class="secondary-button" id="download-lua" type="button">Save Lua listing</button>
               </div>
-              <pre class="code-preview" aria-label="Lua source preview"><span class="ln">0</span><span class="kw">function</span> <span class="fn">_init</span>()
-<span class="ln">1</span>  player={<span class="num">x=64,y=64,spd=2</span>}
-<span class="ln">2</span>  particles={}
-<span class="ln">3</span><span class="kw">end</span>
-<span class="ln">4</span>
-<span class="ln">5</span><span class="kw">function</span> <span class="fn">_update</span>()
-<span class="ln">6</span>  player.x+=btn(<span class="num">1</span>) and player.spd or <span class="num">0</span>
-<span class="ln">7</span><span class="kw">end</span> <span class="comment">-- ready for launch</span></pre>
+              <pre class="code-preview" id="lua-preview" aria-label="Lua source preview">Select a cartridge to view its Lua.</pre>
             </article>
 
             <article class="card span-5" data-cli-commands="luafind">
               <div class="card-title"><h3>Find in cartridges</h3><span class="command-tag">luafind</span></div>
               <div class="field-row">
-                <label class="field"><span>JavaScript regular expression</span><input type="text" value="print|spr" aria-label="Search regular expression"></label>
-                <button class="primary-button" type="button">Search</button>
+                <label class="field"><span>JavaScript regular expression</span><input id="search-pattern" type="text" value="print|spr" aria-label="Search regular expression"></label>
+                <button class="primary-button" id="run-search" type="button">Search</button>
               </div>
               <div class="options" style="margin-top:10px">
-                <label class="check"><input type="checkbox"> List matching filenames only</label>
-                <span style="color:var(--faint);font-size:9px">Invalid patterns appear here</span>
+                <label class="check"><input id="search-list-files" type="checkbox"> List matching filenames only</label>
+                <span id="search-status" style="color:var(--faint);font-size:9px">JavaScript regular expressions</span>
               </div>
-              <div class="result-list">
-                <div class="result"><span>starfall.p8</span><span>87</span><span>spr(player.sprite,player.x,player.y)</span></div>
-                <div class="result"><span>terrain.p8</span><span>24</span><span>print("loading map")</span></div>
-              </div>
+              <div class="result-list" id="search-results"></div>
             </article>
 
             <article class="card span-7" data-cli-commands="listtokens printast">
               <div class="card-title"><h3>Code structure</h3><span class="command-tag">listtokens / printast</span></div>
               <div class="segmented" role="group" aria-label="Code structure view">
-                <label><input type="radio" name="structure" checked>Token inspector</label>
-                <label><input type="radio" name="structure">AST tree</label>
-                <label><input type="radio" name="structure">Whitespace + comments</label>
+                <label><input type="radio" name="structure" value="tokens" checked>Tokens</label>
+                <label><input type="radio" name="structure" value="ast">AST tree</label>
               </div>
-              <div class="tree" style="margin-top:14px">
-                <b>#018</b> keyword &nbsp; function<br>
-                <b>#019</b> identifier &nbsp; _update<br>
-                <b>#020</b> symbol &nbsp; (<br>
-                <b>#021</b> symbol &nbsp; ) &nbsp;&nbsp; <span style="color:var(--faint)">← select a token to inspect</span>
-              </div>
+              <pre class="tree" id="structure-preview" style="margin-top:14px">Select a cartridge to inspect code structure.</pre>
             </article>
           </div>
         </section>
@@ -520,65 +493,50 @@
         <section class="section" id="transform">
           <div class="section-heading">
             <div><p class="section-kicker">02 / Refine</p><h2>Rewrite &amp; transform</h2></div>
-            <p>Work on one cart or a batch, preview the result, then keep the transformation as an editable working copy.</p>
+            <p>Run a CLI transformation on one cart or a batch. Inputs stay in place; command outputs are separate downloadable files.</p>
           </div>
 
           <div class="flow-bar" aria-label="Transformation workflow">
             <div class="flow-step active"><b>1</b> Choose operation</div>
-            <div class="flow-step"><b>2</b> Preview changes</div>
-            <div class="flow-step"><b>3</b> Apply to working copy</div>
+            <div class="flow-step"><b>2</b> Choose CLI options</div>
+            <div class="flow-step"><b>3</b> Download command output</div>
           </div>
 
           <div class="card-grid">
             <article class="card span-5" data-cli-commands="writep8 luamin luafmt">
               <div class="card-title"><h3>Transformation</h3><span class="command-tag">writep8 / luamin / luafmt</span></div>
               <div class="segmented" role="group" aria-label="Transformation type">
-                <label><input type="radio" name="transform">Rewrite</label>
-                <label><input type="radio" name="transform" checked>Minify</label>
-                <label><input type="radio" name="transform">Format</label>
+                <label><input type="radio" name="transform" value="writep8">Rewrite</label>
+                <label><input type="radio" name="transform" value="luamin" checked>Minify</label>
+                <label><input type="radio" name="transform" value="luafmt">Format</label>
               </div>
               <p class="card-copy" style="margin-top:12px">Rewrite normalizes the cartridge through the default writer. PNG inputs keep their visible labels.</p>
               <div class="transform-controls">
                 <div class="option-panel">
-                  <h4>Minify settings</h4>
-                  <label class="check"><input type="checkbox"> Keep all names</label>
-                  <label class="field"><span>Names to preserve</span><select><option>Upload name list…</option></select></label>
+                  <h4 class="minify-option">Minify settings</h4>
+                  <label class="check minify-option"><input id="transform-keep-all" type="checkbox"> Keep all names</label>
+                  <label class="field minify-option"><span>Names to preserve</span><select id="transform-name-list"><option value="">No name list</option></select></label>
                 </div>
                 <div class="option-panel">
-                  <h4>Format settings</h4>
-                  <label class="field"><span>Indent width</span><input type="number" value="2" min="0" max="8"></label>
+                  <h4 class="format-option">Format settings</h4>
+                  <label class="field format-option"><span>Indent width</span><input id="transform-indent" type="number" value="2" step="1"></label>
+                  <label class="check format-option"><input id="transform-overwrite" type="checkbox"> Use original output filename (.p8 only)</label>
                 </div>
               </div>
               <div class="options" style="margin-top:14px">
-                <label class="check"><input type="checkbox" checked> Apply to all 3 cartridges</label>
+                <label class="check"><input id="transform-all" type="checkbox"> Run on all cartridges</label>
               </div>
             </article>
 
             <article class="card span-7">
-              <div class="preview-head">
-                <div><p class="section-kicker">Preview</p><h3 style="margin:0;font-size:13px">Before → after</h3></div>
-                <div class="delta"><span>Tokens <strong>−28%</strong></span><span>Compressed <strong>−1.8 KB</strong></span></div>
-              </div>
-              <pre class="code-preview" aria-label="Transformed Lua preview"><span class="comment">-- minified preview</span>
-<span class="kw">function</span> <span class="fn">_init</span>()
- p={<span class="num">x=64,y=64,s=2</span>} particles={}
-<span class="kw">end</span>
-<span class="kw">function</span> <span class="fn">_update</span>()
- p.x+=btn(<span class="num">1</span>) and p.s or <span class="num">0</span>
-<span class="kw">end</span></pre>
-              <div class="options" style="justify-content:space-between;margin-top:12px">
-                <span style="color:var(--muted);font-size:9px">Updated stats recalculate before export.</span>
-                <button class="primary-button" type="button">Apply to working copy</button>
-              </div>
+              <div class="card-title"><h3>Command output</h3><span class="command-tag">separate files</span></div>
+              <p class="card-copy">Run the selected CLI command to create output files. Download each result here or use Download all.</p>
+              <button class="primary-button" id="run-transform" type="button">Run command</button>
             </article>
 
             <article class="card span-12">
-              <div class="card-title"><h3>Batch output names</h3><span class="command-tag">per-file status</span></div>
-              <div class="batch-list">
-                <div class="batch-item"><i class="status-ok"></i><span>starfall.p8.png → <b>starfall_min.p8.png</b></span><small>Ready · label preserved</small></div>
-                <div class="batch-item"><i class="status-ok"></i><span>terrain.p8 → <b>terrain_min.p8</b></span><small>Ready</small></div>
-                <div class="batch-item"><i class="status-error"></i><span>sounds.p8.png → <b>sounds_min.p8.png</b></span><small style="color:var(--pink)">Lua parse error · line 28</small></div>
-              </div>
+              <div class="card-title"><h3>Command results</h3><span class="command-tag">per-file output</span></div>
+              <div class="batch-list" id="transform-results"><p class="card-copy">No command run yet.</p></div>
             </article>
           </div>
         </section>
@@ -586,15 +544,14 @@
         <section class="section" id="build" data-cli-commands="build">
           <div class="section-heading">
             <div><p class="section-kicker">03 / Assemble</p><h2>Build a cartridge</h2></div>
-            <p>Start clean or retain an existing cart, then replace, clear, or preserve each section independently.</p>
+            <p>Build from an empty cartridge or an existing local cartridge whose filename matches the output. Replace or clear sections with CLI source files.</p>
           </div>
 
           <div class="card span-12" style="margin-bottom:14px">
             <div class="options" style="justify-content:space-between">
               <div class="options">
-                <strong style="font-size:11px">Build base</strong>
-                <label class="radio"><input type="radio" name="base"> Empty cartridge</label>
-                <label class="radio"><input type="radio" name="base" checked> Existing: starfall.p8.png</label>
+                <strong style="font-size:11px">Existing output</strong>
+                <span style="color:var(--muted);font-size:10px">The CLI uses a local cartridge as the base only when its filename exactly matches the output filename.</span>
               </div>
               <span style="color:var(--green);font-size:9px">◈ Existing PNG label will be preserved</span>
             </div>
@@ -603,13 +560,13 @@
           <div class="build-layout">
             <article class="card">
               <div class="card-title"><h3>Cartridge sections</h3><span class="command-tag">replace / retain / clear</span></div>
-              <div class="section-map">
-                <div class="section-row"><div class="section-name">Lua<span>code</span></div><button class="source-slot ready" type="button">main.lua + modules</button><button class="clear-control" type="button">Clear</button></div>
-                <div class="section-row"><div class="section-name">GFX<span>sprites</span></div><button class="source-slot ready" type="button">terrain.p8.png</button><button class="clear-control" type="button">Clear</button></div>
-                <div class="section-row"><div class="section-name">GFF<span>flags</span></div><button class="source-slot" type="button">Retain from base · choose…</button><button class="clear-control" type="button">Clear</button></div>
-                <div class="section-row"><div class="section-name">Map<span>tilemap</span></div><button class="source-slot ready" type="button">terrain.p8.png</button><button class="clear-control" type="button">Clear</button></div>
-                <div class="section-row"><div class="section-name">SFX<span>sounds</span></div><button class="source-slot ready" type="button">sounds.p8.png</button><button class="clear-control" type="button">Clear</button></div>
-                <div class="section-row"><div class="section-name">Music<span>patterns</span></div><button class="source-slot" type="button">Retain from base · choose…</button><button class="clear-control" type="button">Clear</button></div>
+              <div class="section-map" id="build-sections">
+                <div class="section-row" data-domain="lua"><div class="section-name">Lua<span>code</span></div><button class="source-slot" type="button">Choose .lua or cartridge…</button><button class="clear-control" type="button">Clear</button><input type="file" accept=".lua,.p8,.p8.png" hidden></div>
+                <div class="section-row" data-domain="gfx"><div class="section-name">GFX<span>sprites</span></div><button class="source-slot" type="button">Retain from matching output</button><button class="clear-control" type="button">Clear</button><input type="file" accept=".p8,.p8.png" hidden></div>
+                <div class="section-row" data-domain="gff"><div class="section-name">GFF<span>flags</span></div><button class="source-slot" type="button">Retain from matching output</button><button class="clear-control" type="button">Clear</button><input type="file" accept=".p8,.p8.png" hidden></div>
+                <div class="section-row" data-domain="map"><div class="section-name">Map<span>tilemap</span></div><button class="source-slot" type="button">Retain from matching output</button><button class="clear-control" type="button">Clear</button><input type="file" accept=".p8,.p8.png" hidden></div>
+                <div class="section-row" data-domain="sfx"><div class="section-name">SFX<span>sounds</span></div><button class="source-slot" type="button">Retain from matching output</button><button class="clear-control" type="button">Clear</button><input type="file" accept=".p8,.p8.png" hidden></div>
+                <div class="section-row" data-domain="music"><div class="section-name">Music<span>patterns</span></div><button class="source-slot" type="button">Retain from matching output</button><button class="clear-control" type="button">Clear</button><input type="file" accept=".p8,.p8.png" hidden></div>
               </div>
               <p class="card-copy" style="margin:12px 0 0">A section cannot be cleared and replaced at the same time. Sources may be .p8 or .p8.png; Lua may also use a raw .lua file.</p>
             </article>
@@ -618,31 +575,35 @@
               <article class="sub-card">
                 <h4>Lua assembly</h4>
                 <div class="segmented" role="group" aria-label="Built Lua handling">
-                  <label><input type="radio" name="build-lua" checked>Unchanged</label>
-                  <label><input type="radio" name="build-lua">Formatted</label>
-                  <label><input type="radio" name="build-lua">Minified</label>
+                  <label><input type="radio" name="build-lua" value="unchanged" checked>Unchanged</label>
+                  <label><input type="radio" name="build-lua" value="format">Formatted</label>
+                  <label><input type="radio" name="build-lua" value="minify">Minified</label>
                 </div>
                 <div class="options" style="margin-top:11px">
-                  <label class="check"><input type="checkbox"> Keep all names</label>
-                  <button type="button">Name list…</button>
+                  <label class="check"><input id="build-keep-all" type="checkbox"> Keep all names</label>
+                  <select id="build-name-list"><option value="">No name list</option></select>
+                  <label class="check"><input id="build-optimize-tokens" type="checkbox"> Optimize tokens</label>
+                  <p class="card-copy" style="margin:6px 0 0">The CLI does not yet implement token optimization for raw Lua builds.</p>
                 </div>
               </article>
 
               <article class="sub-card">
                 <h4>Require modules</h4>
-                <div class="tree">📁 /<br>&nbsp; ├─ main.lua<br>&nbsp; └─ 📁 modules<br>&nbsp;&nbsp;&nbsp;&nbsp; ├─ <b>player.lua</b><br>&nbsp;&nbsp;&nbsp;&nbsp; └─ <b>particles.lua</b></div>
-                <label class="field" style="margin-top:10px"><span>Lookup templates</span><input type="text" value="modules/?.lua;?.lua"></label>
-                <button type="button" style="width:100%;margin-top:9px">Select module folder</button>
+                <div class="tree" id="module-tree">No module folder selected.</div>
+                <label class="field" style="margin-top:10px"><span>Lua entry from uploaded folder</span><select id="build-entry-module"><option value="">Use Lua section source</option></select></label>
+                <label class="field" style="margin-top:10px"><span>Lookup templates</span><input id="lua-path" type="text" value="?;?.lua"></label>
+                <button id="build-select-modules" type="button" style="width:100%;margin-top:9px">Select module folder</button>
                 <p class="card-copy" style="margin:10px 0 0">Relative paths are retained. Nested dependencies are bundled in memory.</p>
               </article>
 
               <article class="sub-card">
                 <h4>Output cartridge</h4>
                 <div class="field-row">
-                  <label class="field"><span>Filename</span><input type="text" value="starfall_remix"></label>
-                  <label class="field"><span>Format</span><select><option>.p8.png</option><option>.p8</option></select></label>
+                  <label class="field"><span>Filename</span><input id="build-output-name" type="text" value="game_build"></label>
+                  <label class="field"><span>Format</span><select id="build-output-format"><option>.p8.png</option><option>.p8</option></select></label>
                 </div>
-                <button class="primary-button" type="button" style="width:100%;margin-top:12px">Preview assembled cart</button>
+                <button class="primary-button" id="preview-build" type="button" style="width:100%;margin-top:12px">Run build</button>
+                <p class="card-copy" id="build-status" style="margin:10px 0 0">Not built yet.</p>
               </article>
             </div>
           </div>
@@ -651,32 +612,25 @@
         <section class="section" id="export">
           <div class="section-heading">
             <div><p class="section-kicker">04 / Take home</p><h2>Export results</h2></div>
-            <p>Downloads create new local files. Your original cartridges are never overwritten by the browser workspace.</p>
+            <p>Command outputs are downloaded separately. Selected input cartridges remain available for more CLI operations.</p>
           </div>
 
           <div class="export-grid">
             <article class="export-card primary">
-              <h3>Download working cartridges</h3>
-              <p>Export transformed or assembled carts in their selected formats, with distinct filenames and preserved labels where applicable.</p>
+              <h3>Command output files</h3>
+              <p>Download files produced by CLI commands. Original inputs stay available for additional commands.</p>
               <div class="export-actions">
-                <button class="primary-button" type="button">Download all 3</button>
-                <button type="button">Selected only</button>
+                <button class="primary-button" id="download-all" type="button">Download all outputs</button>
               </div>
-              <div class="batch-list">
-                <div class="batch-item"><i class="status-ok"></i><span>starfall_min.p8.png</span><small>39 KB</small></div>
-                <div class="batch-item"><i class="status-ok"></i><span>terrain_min.p8</span><small>28 KB</small></div>
-                <div class="batch-item"><i class="status-error"></i><span>sounds_min.p8.png</span><small style="color:var(--pink)">Fix error first</small></div>
-              </div>
+              <div class="batch-list" id="export-list"><p class="card-copy">Nothing to export yet.</p></div>
             </article>
 
             <article class="export-card">
               <h3>Text &amp; report exports</h3>
-              <p>Save diagnostic views separately or convert between cartridge text and PNG transports through the engine.</p>
+              <p>Save CLI listing output or statistics as files.</p>
               <div class="export-actions">
-                <button class="secondary-button" type="button">Lua source</button>
-                <button class="secondary-button" type="button">Stats CSV</button>
-                <button type="button">Convert to .p8</button>
-                <button type="button">Convert to .p8.png</button>
+                <button class="secondary-button" id="export-lua" type="button">Current Lua listing</button>
+                <button class="secondary-button" id="export-stats" type="button">Stats CSV</button>
               </div>
               <div class="privacy-note" style="margin-top:18px;box-shadow:none">
                 <strong>◈ Still local</strong>
@@ -690,7 +644,7 @@
   </div>
 
   <footer>
-    <span>3 cartridges · 1 modified · processing stays on this device</span>
+    <span id="workspace-status">0 cartridges · processing stays on this device</span>
     <nav aria-label="Project links"><a href="README.md">Project notes</a><a href="https://github.com/jslinker/picotool-js">Engine</a><a href="LICENSE">MIT license</a></nav>
   </footer>
 
@@ -700,16 +654,18 @@
       <button type="button" onclick="document.getElementById('help').close()" aria-label="Close help">Close</button>
     </div>
     <div class="help-body">
-      <p>Choose one or more local PICO-8 cartridges, then move between the four workspace views. This prototype shows the planned workflow; processing controls are not connected yet.</p>
+      <p>Choose one or more local PICO-8 cartridges, then move between the four workspace views. Processing and downloads stay in this browser tab.</p>
       <div class="help-steps">
         <div class="help-step"><b>1 · Inspect</b><span>Review statistics, Lua, tokens, the syntax tree, and regex matches.</span></div>
-        <div class="help-step"><b>2 · Transform</b><span>Rewrite, minify, or format Lua and preview the result.</span></div>
+        <div class="help-step"><b>2 · Transform</b><span>Run writep8, luamin, or luafmt and download command output.</span></div>
         <div class="help-step"><b>3 · Build</b><span>Assemble code, graphics, map, flags, SFX, and music into a cart.</span></div>
-        <div class="help-step"><b>4 · Export</b><span>Download new cartridges, Lua source, or statistics without changing originals.</span></div>
+        <div class="help-step"><b>4 · Export</b><span>Download command output files, Lua listings, or statistics.</span></div>
       </div>
       <div class="help-foot"><span>◆ Files stay in this browser tab.</span><a href="README.md">Read project notes →</a></div>
     </div>
   </dialog>
+  <script src="vendor/picotool.js"></script>
   <script src="app.js"></script>
+  <script src="ui.js"></script>
 </body>
 </html>

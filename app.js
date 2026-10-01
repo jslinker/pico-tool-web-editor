@@ -202,7 +202,11 @@
     });
   }
 
-  const defaultApi = createPicoToolWebApi();
+  const browserEngine = typeof globalThis === "object" && globalThis.PicotoolJS
+    && typeof globalThis.PicotoolJS.createBrowserCommands === "function"
+    ? globalThis.PicotoolJS.createBrowserCommands()
+    : null;
+  const defaultApi = createPicoToolWebApi({ engineAdapter: browserEngine });
 
   return Object.freeze({
     ...defaultApi,
