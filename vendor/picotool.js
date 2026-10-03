@@ -2,6 +2,7 @@
 var PicotoolJS = (() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
   var __require = /* @__PURE__ */ ((x2) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x2, {
     get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
   }) : x2)(function(x2) {
@@ -42,11 +43,11 @@ var PicotoolJS = (() => {
   // ../picotool-js/src/picotool.js
   var require_picotool = __commonJS({
     "../picotool-js/src/picotool.js"(exports, module) {
-      (function initializePicotool(root, factory) {
+      (/* @__PURE__ */ __name(function initializePicotool(root, factory) {
         const api = factory();
         if (typeof module === "object" && module.exports) module.exports = api;
         if (root) root.PicotoolJS = api;
-      })(typeof globalThis === "object" ? globalThis : exports, function createPicotool() {
+      }, "initializePicotool"))(typeof globalThis === "object" ? globalThis : exports, /* @__PURE__ */ __name(function createPicotool() {
         "use strict";
         const P8SCII = typeof globalThis === "object" && globalThis.PicotoolP8SCII ? globalThis.PicotoolP8SCII : typeof __require === "function" ? require_p8scii_map() : void 0;
         if (!P8SCII) throw new Error("p8scii-map.js must load before picotool.js");
@@ -57,6 +58,9 @@ var PicotoolJS = (() => {
         const SECTION_NAMES = Object.freeze(["lua", "gfx", "gff", "map", "sfx", "music", "label"]);
         const SECTION_NAME_SET = new Set(SECTION_NAMES);
         class P8Error extends Error {
+          static {
+            __name(this, "P8Error");
+          }
           constructor(code, message, details) {
             super(message);
             this.name = "P8Error";
@@ -69,11 +73,13 @@ var PicotoolJS = (() => {
           const encoded = Array.from(bytes, (byte) => `%${byte.toString(16).padStart(2, "0")}`).join("");
           return decodeURIComponent(encoded);
         }
+        __name(decodeUtf8, "decodeUtf8");
         function encodeUtf8(value) {
           if (typeof TextEncoder === "function") return new TextEncoder().encode(value);
           const encoded = unescape(encodeURIComponent(value));
           return Uint8Array.from(encoded, (character) => character.charCodeAt(0));
         }
+        __name(encodeUtf8, "encodeUtf8");
         function encodeP8scii(value) {
           const result = [];
           for (let index = 0; index < value.length; ) {
@@ -87,9 +93,11 @@ var PicotoolJS = (() => {
           }
           return Uint8Array.from(result);
         }
+        __name(encodeP8scii, "encodeP8scii");
         function decodeP8scii(value) {
           return Array.from(value, (byte) => P8SCII[byte]).join("");
         }
+        __name(decodeP8scii, "decodeP8scii");
         function toText(source) {
           if (typeof source === "string") return source;
           if (source instanceof Uint8Array || source instanceof ArrayBuffer) {
@@ -98,12 +106,15 @@ var PicotoolJS = (() => {
           }
           throw new TypeError("PICO-8 cartridge input must be a string, Uint8Array, or ArrayBuffer");
         }
+        __name(toText, "toText");
         function linesWithEndings(source) {
           return source.match(/[^\n]*\n|[^\n]+$/g) || [];
         }
+        __name(linesWithEndings, "linesWithEndings");
         function withoutEnding(line) {
           return line.endsWith("\n") ? line.slice(0, -1) : line;
         }
+        __name(withoutEnding, "withoutEnding");
         function parseP8(source) {
           const normalized = toText(source).replace(/\r\n?/g, "\n");
           const lines = linesWithEndings(normalized);
@@ -137,6 +148,7 @@ var PicotoolJS = (() => {
             sections: Object.freeze(sections)
           });
         }
+        __name(parseP8, "parseP8");
         function fnv1a32(bytes) {
           let hash = 2166136261;
           for (const byte of bytes) {
@@ -145,6 +157,7 @@ var PicotoolJS = (() => {
           }
           return hash.toString(16).padStart(8, "0");
         }
+        __name(fnv1a32, "fnv1a32");
         function snapshotP8(source, name) {
           const parsed = parseP8(source);
           return {
@@ -163,6 +176,7 @@ var PicotoolJS = (() => {
             })
           };
         }
+        __name(snapshotP8, "snapshotP8");
         function normalizedResult(action) {
           try {
             return { status: "ok", value: action() };
@@ -171,6 +185,7 @@ var PicotoolJS = (() => {
             throw error;
           }
         }
+        __name(normalizedResult, "normalizedResult");
         return Object.freeze({
           HEADER,
           P8Error,
@@ -184,14 +199,14 @@ var PicotoolJS = (() => {
           parseP8,
           snapshotP8
         });
-      });
+      }, "createPicotool"));
     }
   });
 
   // ../picotool-js/src/sections.js
   var require_sections = __commonJS({
     "../picotool-js/src/sections.js"(exports, module) {
-      (function initializeSections(root, factory) {
+      (/* @__PURE__ */ __name(function initializeSections(root, factory) {
         const base = root?.PicotoolJS || (typeof __require === "function" ? require_picotool() : void 0);
         const api = factory(base);
         if (typeof module === "object" && module.exports) module.exports = api;
@@ -199,7 +214,7 @@ var PicotoolJS = (() => {
           root.PicotoolJSSections = api;
           root.PicotoolJS = Object.freeze({ ...base, ...api });
         }
-      })(typeof globalThis === "object" ? globalThis : exports, function createSections(base) {
+      }, "initializeSections"))(typeof globalThis === "object" ? globalThis : exports, /* @__PURE__ */ __name(function createSections(base) {
         "use strict";
         if (!base) throw new Error("picotool.js must load before sections.js");
         const TRANSPARENT = 16;
@@ -207,15 +222,21 @@ var PicotoolJS = (() => {
         function assertInteger(value, minimum, maximum, name) {
           if (!Number.isInteger(value) || value < minimum || value > maximum) throw new RangeError(`${name} must be ${minimum}..${maximum}`);
         }
+        __name(assertInteger, "assertInteger");
         function hexToBytes(value) {
           const compact = value.trim();
           if (compact.length % 2 || /[^0-9a-f]/i.test(compact)) throw new Error("Invalid hexadecimal data");
           return Uint8Array.from({ length: compact.length / 2 }, (_, index) => Number.parseInt(compact.slice(index * 2, index * 2 + 2), 16));
         }
+        __name(hexToBytes, "hexToBytes");
         function bytesToHex(bytes) {
           return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
         }
+        __name(bytesToHex, "bytesToHex");
         class BaseSection {
+          static {
+            __name(this, "BaseSection");
+          }
           constructor(data, version = 4) {
             this._data = data instanceof Uint8Array ? data.slice() : Uint8Array.from(data || []);
             this._version = version;
@@ -238,6 +259,9 @@ var PicotoolJS = (() => {
           }
         }
         class Gfx extends BaseSection {
+          static {
+            __name(this, "Gfx");
+          }
           static HEX_LINE_LENGTH_BYTES = 64;
           static empty(version = 4) {
             return new Gfx(new Uint8Array(8192), version);
@@ -300,6 +324,9 @@ var PicotoolJS = (() => {
           }
         }
         class Gff extends BaseSection {
+          static {
+            __name(this, "Gff");
+          }
           static HEX_LINE_LENGTH_BYTES = 128;
           static empty(version = 4) {
             return new Gff(new Uint8Array(256), version);
@@ -322,6 +349,9 @@ var PicotoolJS = (() => {
           }
         }
         class MapSection extends BaseSection {
+          static {
+            __name(this, "MapSection");
+          }
           static HEX_LINE_LENGTH_BYTES = 128;
           constructor(data, version = 4, gfx = null) {
             super(data, version);
@@ -374,6 +404,9 @@ var PicotoolJS = (() => {
           }
         }
         class Music extends BaseSection {
+          static {
+            __name(this, "Music");
+          }
           static empty(version = 4) {
             return new Music(Uint8Array.from(Array(64).fill([65, 66, 67, 68]).flat()), version);
           }
@@ -423,6 +456,9 @@ var PicotoolJS = (() => {
           }
         }
         class Sfx extends BaseSection {
+          static {
+            __name(this, "Sfx");
+          }
           static empty(version = 4) {
             const result = new Sfx(new Uint8Array(4352), version);
             result.setProperties(0, { noteDuration: 1 });
@@ -509,15 +545,16 @@ var PicotoolJS = (() => {
           }
           return { ...base.snapshotP8(source, name), domainMemory: domains };
         }
+        __name(snapshotDomainP8, "snapshotDomainP8");
         return Object.freeze({ BaseSection, GFF, Gff, Gfx, MapSection, Music, Sfx, TRANSPARENT, bytesToHex, hexToBytes, snapshotDomainP8 });
-      });
+      }, "createSections"));
     }
   });
 
   // ../picotool-js/src/p8png.js
   var require_p8png = __commonJS({
     "../picotool-js/src/p8png.js"(exports, module) {
-      (function initializeP8Png(root, factory) {
+      (/* @__PURE__ */ __name(function initializeP8Png(root, factory) {
         const base = root?.PicotoolJS || (typeof __require === "function" ? { ...require_picotool(), ...require_sections() } : void 0);
         const api = factory(base);
         if (typeof module === "object" && module.exports) module.exports = api;
@@ -525,7 +562,7 @@ var PicotoolJS = (() => {
           root.PicotoolJSPng = api;
           root.PicotoolJS = Object.freeze({ ...base, ...api });
         }
-      })(typeof globalThis === "object" ? globalThis : exports, function createP8Png(base) {
+      }, "initializeP8Png"))(typeof globalThis === "object" ? globalThis : exports, /* @__PURE__ */ __name(function createP8Png(base) {
         "use strict";
         if (!base) throw new Error("picotool.js and sections.js must load before p8png.js");
         const CODE_OFFSET = 17152;
@@ -540,11 +577,13 @@ var PicotoolJS = (() => {
           if (value instanceof ArrayBuffer) return new Uint8Array(value);
           return Uint8Array.from(value);
         }
+        __name(asBytes, "asBytes");
         function endsWithBytes(value, suffix) {
           if (suffix.length > value.length) return false;
           for (let index = 0; index < suffix.length; index += 1) if (value[value.length - suffix.length + index] !== suffix[index]) return false;
           return true;
         }
+        __name(endsWithBytes, "endsWithBytes");
         function containsBytes(value, search) {
           outer: for (let start = 0; start <= value.length - search.length; start += 1) {
             for (let index = 0; index < search.length; index += 1) if (value[start + index] !== search[index]) continue outer;
@@ -552,6 +591,7 @@ var PicotoolJS = (() => {
           }
           return false;
         }
+        __name(containsBytes, "containsBytes");
         function findRepeatableBlock(data, position) {
           const maximumLength = Math.min(17, data.length - position);
           const maximumHistory = Math.min((255 - COMPRESSED_LUA_CHAR_TABLE.length) * 16, position);
@@ -566,6 +606,7 @@ var PicotoolJS = (() => {
           }
           return [bestLength, position - bestIndex];
         }
+        __name(findRepeatableBlock, "findRepeatableBlock");
         function compressCode(input) {
           let data = asBytes(input);
           const update60 = base.encodeUtf8("_update60");
@@ -594,6 +635,7 @@ var PicotoolJS = (() => {
           }
           return Uint8Array.from(output);
         }
+        __name(compressCode, "compressCode");
         function decompressCode(input) {
           const data = asBytes(input), codeLength = data[4] << 8 | data[5];
           if (data[6] !== 0 || data[7] !== 0) throw new Error("Invalid compressed Lua header");
@@ -627,6 +669,7 @@ var PicotoolJS = (() => {
           }
           return { codeLength, code, compressedSize: inputIndex };
         }
+        __name(decompressCode, "decompressCode");
         function getCodeFromBytes(input, version) {
           const data = asBytes(input);
           let result;
@@ -640,6 +683,7 @@ var PicotoolJS = (() => {
           result.code = result.code.map((byte) => byte === 13 ? 32 : byte);
           return result;
         }
+        __name(getCodeFromBytes, "getCodeFromBytes");
         function getBytesFromCode(input) {
           const code = asBytes(input), compressed = compressCode(code);
           if (code.length > 65535) throw new RangeError("PICO-8 Lua code is too large for the PNG code-length header");
@@ -654,6 +698,7 @@ var PicotoolJS = (() => {
           output.set(encoded);
           return output;
         }
+        __name(getBytesFromCode, "getBytesFromCode");
         function getPicodataFromRgba(width, height, rgba) {
           const pixels = asBytes(rgba);
           if (pixels.length !== width * height * 4) throw new RangeError("RGBA data length does not match the image dimensions");
@@ -664,6 +709,7 @@ var PicotoolJS = (() => {
           }
           return picodata;
         }
+        __name(getPicodataFromRgba, "getPicodataFromRgba");
         function getRgbaFromPicodata(picodataInput, rgbaInput) {
           const picodata = asBytes(picodataInput), rgba = asBytes(rgbaInput).slice();
           const count = Math.min(picodata.length, Math.floor(rgba.length / 4));
@@ -676,6 +722,7 @@ var PicotoolJS = (() => {
           }
           return rgba;
         }
+        __name(getRgbaFromPicodata, "getRgbaFromPicodata");
         function parseP8PngPicodata(input) {
           const data = asBytes(input);
           if (data.length <= VERSION_OFFSET) throw new RangeError("P8 PNG data must contain at least 0x8001 hidden bytes");
@@ -692,6 +739,7 @@ var PicotoolJS = (() => {
             sfx: base.Sfx.fromBytes(data.slice(12800, 17152), version)
           });
         }
+        __name(parseP8PngPicodata, "parseP8PngPicodata");
         function serializeP8PngPicodata(cartridge, luaBytes) {
           const output = new Uint8Array(VERSION_OFFSET + 1);
           output.set(cartridge.gfx.toBytes(), 0);
@@ -703,6 +751,7 @@ var PicotoolJS = (() => {
           output[VERSION_OFFSET] = cartridge.version;
           return output;
         }
+        __name(serializeP8PngPicodata, "serializeP8PngPicodata");
         function snapshotP8PngPicodata(input, name) {
           const parsed = parseP8PngPicodata(input);
           const domains = ["gfx", "gff", "map", "sfx", "music"].map((domain) => ({ name: domain, byteLength: parsed[domain]._data.length, fnv1a32: base.fnv1a32(parsed[domain]._data) }));
@@ -713,6 +762,7 @@ var PicotoolJS = (() => {
             domainMemory: domains
           };
         }
+        __name(snapshotP8PngPicodata, "snapshotP8PngPicodata");
         return Object.freeze({
           CODE_END,
           CODE_OFFSET,
@@ -727,7 +777,7 @@ var PicotoolJS = (() => {
           serializeP8PngPicodata,
           snapshotP8PngPicodata
         });
-      });
+      }, "createP8Png"));
     }
   });
 
@@ -821,7 +871,7 @@ var PicotoolJS = (() => {
         0
       ]);
       clim = new u8([16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]);
-      freb = function(eb, start) {
+      freb = /* @__PURE__ */ __name(function(eb, start) {
         var b = new u16(31);
         for (var i2 = 0; i2 < 31; ++i2) {
           b[i2] = start += 1 << eb[i2 - 1];
@@ -833,7 +883,7 @@ var PicotoolJS = (() => {
           }
         }
         return { b, r };
-      };
+      }, "freb");
       _a = freb(fleb, 2);
       fl = _a.b;
       revfl = _a.r;
@@ -848,7 +898,7 @@ var PicotoolJS = (() => {
         x = (x & 61680) >> 4 | (x & 3855) << 4;
         rev[i] = ((x & 65280) >> 8 | (x & 255) << 8) >> 1;
       }
-      hMap = (function(cd, mb, r) {
+      hMap = /* @__PURE__ */ __name((function(cd, mb, r) {
         var s = cd.length;
         var i2 = 0;
         var l = new u16(mb);
@@ -883,7 +933,7 @@ var PicotoolJS = (() => {
           }
         }
         return co;
-      });
+      }), "hMap");
       flt = new u8(288);
       for (i = 0; i < 144; ++i)
         flt[i] = 8;
@@ -900,32 +950,32 @@ var PicotoolJS = (() => {
       flrm = /* @__PURE__ */ hMap(flt, 9, 1);
       fdm = /* @__PURE__ */ hMap(fdt, 5, 0);
       fdrm = /* @__PURE__ */ hMap(fdt, 5, 1);
-      max = function(a) {
+      max = /* @__PURE__ */ __name(function(a) {
         var m = a[0];
         for (var i2 = 1; i2 < a.length; ++i2) {
           if (a[i2] > m)
             m = a[i2];
         }
         return m;
-      };
-      bits = function(d, p, m) {
+      }, "max");
+      bits = /* @__PURE__ */ __name(function(d, p, m) {
         var o = p / 8 | 0;
         return (d[o] | d[o + 1] << 8) >> (p & 7) & m;
-      };
-      bits16 = function(d, p) {
+      }, "bits");
+      bits16 = /* @__PURE__ */ __name(function(d, p) {
         var o = p / 8 | 0;
         return (d[o] | d[o + 1] << 8 | d[o + 2] << 16) >> (p & 7);
-      };
-      shft = function(p) {
+      }, "bits16");
+      shft = /* @__PURE__ */ __name(function(p) {
         return (p + 7) / 8 | 0;
-      };
-      slc = function(v, s, e) {
+      }, "shft");
+      slc = /* @__PURE__ */ __name(function(v, s, e) {
         if (s == null || s < 0)
           s = 0;
         if (e == null || e > v.length)
           e = v.length;
         return new u8(v.subarray(s, e));
-      };
+      }, "slc");
       ec = [
         "unexpected EOF",
         "invalid block type",
@@ -944,7 +994,7 @@ var PicotoolJS = (() => {
         "invalid zip data"
         // determined by unknown compression method
       ];
-      err = function(ind, msg, nt) {
+      err = /* @__PURE__ */ __name(function(ind, msg, nt) {
         var e = new Error(msg || ec[ind]);
         e.code = ind;
         if (Error.captureStackTrace)
@@ -952,8 +1002,8 @@ var PicotoolJS = (() => {
         if (!nt)
           throw e;
         return e;
-      };
-      inflt = function(dat, st, buf, dict) {
+      }, "err");
+      inflt = /* @__PURE__ */ __name(function(dat, st, buf, dict) {
         var sl = dat.length, dl = dict ? dict.length : 0;
         if (!sl || st.f && !st.l)
           return buf || new u8(0);
@@ -962,14 +1012,14 @@ var PicotoolJS = (() => {
         var noSt = st.i;
         if (noBuf)
           buf = new u8(sl * 3);
-        var cbuf = function(l2) {
+        var cbuf = /* @__PURE__ */ __name(function(l2) {
           var bl = buf.length;
           if (l2 > bl) {
             var nbuf = new u8(Math.max(bl * 2, l2));
             nbuf.set(buf);
             buf = nbuf;
           }
-        };
+        }, "cbuf");
         var final = st.f || 0, pos = st.p || 0, bt = st.b || 0, lm = st.l, dm = st.d, lbt = st.m, dbt = st.n;
         var tbts = sl * 8;
         do {
@@ -1093,21 +1143,21 @@ var PicotoolJS = (() => {
             final = 1, st.m = lbt, st.d = dm, st.n = dbt;
         } while (!final);
         return bt != buf.length && noBuf ? slc(buf, 0, bt) : buf.subarray(0, bt);
-      };
-      wbits = function(d, p, v) {
+      }, "inflt");
+      wbits = /* @__PURE__ */ __name(function(d, p, v) {
         v <<= p & 7;
         var o = p / 8 | 0;
         d[o] |= v;
         d[o + 1] |= v >> 8;
-      };
-      wbits16 = function(d, p, v) {
+      }, "wbits");
+      wbits16 = /* @__PURE__ */ __name(function(d, p, v) {
         v <<= p & 7;
         var o = p / 8 | 0;
         d[o] |= v;
         d[o + 1] |= v >> 8;
         d[o + 2] |= v >> 16;
-      };
-      hTree = function(d, mb) {
+      }, "wbits16");
+      hTree = /* @__PURE__ */ __name(function(d, mb) {
         var t = [];
         for (var i2 = 0; i2 < d.length; ++i2) {
           if (d[i2])
@@ -1172,19 +1222,19 @@ var PicotoolJS = (() => {
           mbt = mb;
         }
         return { t: new u8(tr), l: mbt };
-      };
-      ln = function(n, l, d) {
+      }, "hTree");
+      ln = /* @__PURE__ */ __name(function(n, l, d) {
         return n.s == -1 ? Math.max(ln(n.l, l, d + 1), ln(n.r, l, d + 1)) : l[n.s] = d;
-      };
-      lc = function(c) {
+      }, "ln");
+      lc = /* @__PURE__ */ __name(function(c) {
         var s = c.length;
         while (s && !c[--s])
           ;
         var cl = new u16(++s);
         var cli = 0, cln = c[0], cls = 1;
-        var w = function(v) {
+        var w = /* @__PURE__ */ __name(function(v) {
           cl[cli++] = v;
-        };
+        }, "w");
         for (var i2 = 1; i2 <= s; ++i2) {
           if (c[i2] == cln && i2 != s)
             ++cls;
@@ -1210,14 +1260,14 @@ var PicotoolJS = (() => {
           }
         }
         return { c: cl.subarray(0, cli), n: s };
-      };
-      clen = function(cf, cl) {
+      }, "lc");
+      clen = /* @__PURE__ */ __name(function(cf, cl) {
         var l = 0;
         for (var i2 = 0; i2 < cl.length; ++i2)
           l += cf[i2] * cl[i2];
         return l;
-      };
-      wfblk = function(out, pos, dat) {
+      }, "clen");
+      wfblk = /* @__PURE__ */ __name(function(out, pos, dat) {
         var s = dat.length;
         var o = shft(pos + 2);
         out[o] = s & 255;
@@ -1227,8 +1277,8 @@ var PicotoolJS = (() => {
         for (var i2 = 0; i2 < s; ++i2)
           out[o + i2 + 4] = dat[i2];
         return (o + 4 + s) * 8;
-      };
-      wblk = function(dat, out, final, syms, lf, df, eb, li, bs, bl, p) {
+      }, "wfblk");
+      wblk = /* @__PURE__ */ __name(function(dat, out, final, syms, lf, df, eb, li, bs, bl, p) {
         wbits(out, p++, final);
         ++lf[256];
         var _a2 = hTree(lf, 15), dlt = _a2.t, mlb = _a2.l;
@@ -1291,10 +1341,10 @@ var PicotoolJS = (() => {
         }
         wbits16(out, p, lm[256]);
         return p + ll[256];
-      };
+      }, "wblk");
       deo = /* @__PURE__ */ new i32([65540, 131080, 131088, 131104, 262176, 1048704, 1048832, 2114560, 2117632]);
       et = /* @__PURE__ */ new u8(0);
-      dflt = function(dat, lvl, plvl, pre, post, st) {
+      dflt = /* @__PURE__ */ __name(function(dat, lvl, plvl, pre, post, st) {
         var s = st.z || dat.length;
         var o = new u8(pre + s + 5 * (1 + Math.ceil(s / 7e3)) + post);
         var w = o.subarray(pre, o.length - post);
@@ -1308,9 +1358,9 @@ var PicotoolJS = (() => {
           var msk_1 = (1 << plvl) - 1;
           var prev = st.p || new u16(32768), head = st.h || new u16(msk_1 + 1);
           var bs1_1 = Math.ceil(plvl / 3), bs2_1 = 2 * bs1_1;
-          var hsh = function(i3) {
+          var hsh = /* @__PURE__ */ __name(function(i3) {
             return (dat[i3] ^ dat[i3 + 1] << bs1_1 ^ dat[i3 + 2] << bs2_1) & msk_1;
-          };
+          }, "hsh");
           var syms = new i32(25e3);
           var lf = new u16(288), df = new u16(32);
           var lc_1 = 0, eb = 0, i2 = st.i || 0, li = 0, wi = st.w || 0, bs = 0;
@@ -1394,11 +1444,11 @@ var PicotoolJS = (() => {
           st.i = s;
         }
         return slc(o, 0, pre + shft(pos) + post);
-      };
-      adler = function() {
+      }, "dflt");
+      adler = /* @__PURE__ */ __name(function() {
         var a = 1, b = 0;
         return {
-          p: function(d) {
+          p: /* @__PURE__ */ __name(function(d) {
             var n = a, m = b;
             var l = d.length | 0;
             for (var i2 = 0; i2 != l; ) {
@@ -1408,14 +1458,14 @@ var PicotoolJS = (() => {
               n = (n & 65535) + 15 * (n >> 16), m = (m & 65535) + 15 * (m >> 16);
             }
             a = n, b = m;
-          },
-          d: function() {
+          }, "p"),
+          d: /* @__PURE__ */ __name(function() {
             a %= 65521, b %= 65521;
             return (a & 255) << 24 | (a & 65280) << 8 | (b & 255) << 8 | b >> 8;
-          }
+          }, "d")
         };
-      };
-      dopt = function(dat, opt, pre, post, st) {
+      }, "adler");
+      dopt = /* @__PURE__ */ __name(function(dat, opt, pre, post, st) {
         if (!st) {
           st = { l: 1 };
           if (opt.dictionary) {
@@ -1428,12 +1478,12 @@ var PicotoolJS = (() => {
           }
         }
         return dflt(dat, opt.level == null ? 6 : opt.level, opt.mem == null ? st.l ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : 20 : 12 + opt.mem, pre, post, st);
-      };
-      wbytes = function(d, b, v) {
+      }, "dopt");
+      wbytes = /* @__PURE__ */ __name(function(d, b, v) {
         for (; v; ++b)
           d[b] = v, v >>>= 8;
-      };
-      zlh = function(c, o) {
+      }, "wbytes");
+      zlh = /* @__PURE__ */ __name(function(c, o) {
         var lv = o.level, fl2 = lv == 0 ? 0 : lv < 6 ? 1 : lv == 9 ? 3 : 2;
         c[0] = 120, c[1] = fl2 << 6 | (o.dictionary && 32);
         c[1] |= 31 - (c[0] << 8 | c[1]) % 31;
@@ -1442,14 +1492,14 @@ var PicotoolJS = (() => {
           h.p(o.dictionary);
           wbytes(c, 2, h.d());
         }
-      };
-      zls = function(d, dict) {
+      }, "zlh");
+      zls = /* @__PURE__ */ __name(function(d, dict) {
         if ((d[0] & 15) != 8 || d[0] >> 4 > 7 || (d[0] << 8 | d[1]) % 31)
           err(6, "invalid zlib data");
         if ((d[1] >> 5 & 1) == +!dict)
           err(6, "invalid zlib data: " + (d[1] & 32 ? "need" : "unexpected") + " dictionary");
         return (d[1] >> 3 & 4) + 2;
-      };
+      }, "zls");
       Inflate = /* @__PURE__ */ (function() {
         function Inflate2(opts, cb) {
           if (typeof opts == "function")
@@ -1462,6 +1512,7 @@ var PicotoolJS = (() => {
           if (dict)
             this.o.set(dict);
         }
+        __name(Inflate2, "Inflate");
         Inflate2.prototype.e = function(c) {
           if (!this.ondata)
             err(5);
@@ -1487,11 +1538,13 @@ var PicotoolJS = (() => {
         };
         return Inflate2;
       })();
+      __name(zlibSync, "zlibSync");
       Unzlib = /* @__PURE__ */ (function() {
         function Unzlib2(opts, cb) {
           Inflate.call(this, opts, cb);
           this.v = opts && opts.dictionary ? 2 : 1;
         }
+        __name(Unzlib2, "Unzlib");
         Unzlib2.prototype.push = function(chunk, final) {
           Inflate.prototype.e.call(this, chunk);
           if (this.v) {
@@ -1508,6 +1561,7 @@ var PicotoolJS = (() => {
         };
         return Unzlib2;
       })();
+      __name(unzlibSync, "unzlibSync");
       td = typeof TextDecoder != "undefined" && /* @__PURE__ */ new TextDecoder();
       tds = 0;
       try {
@@ -1529,7 +1583,9 @@ var PicotoolJS = (() => {
   var encoder;
   var init_text = __esm({
     "../picotool-js/node_modules/iobuffer/lib/text.js"() {
+      __name(decode, "decode");
       encoder = new TextEncoder();
+      __name(encode, "encode");
     }
   });
 
@@ -1557,6 +1613,9 @@ var PicotoolJS = (() => {
         float64: globalThis.Float64Array
       };
       IOBuffer = class _IOBuffer {
+        static {
+          __name(this, "IOBuffer");
+        }
         /**
          * Reference to the internal ArrayBuffer object.
          */
@@ -2187,6 +2246,10 @@ var PicotoolJS = (() => {
         crcTable[n] = c;
       }
       initialCrc = 4294967295;
+      __name(updateCrc, "updateCrc");
+      __name(crc, "crc");
+      __name(checkCrc, "checkCrc");
+      __name(writeCrc, "writeCrc");
     }
   });
 
@@ -2267,6 +2330,12 @@ var PicotoolJS = (() => {
   }
   var init_unfilter = __esm({
     "../picotool-js/node_modules/fast-png/lib/helpers/unfilter.js"() {
+      __name(unfilterNone, "unfilterNone");
+      __name(unfilterSub, "unfilterSub");
+      __name(unfilterUp, "unfilterUp");
+      __name(unfilterAverage, "unfilterAverage");
+      __name(unfilterPaeth, "unfilterPaeth");
+      __name(paethPredictor, "paethPredictor");
     }
   });
 
@@ -2295,6 +2364,7 @@ var PicotoolJS = (() => {
   var init_apply_unfilter = __esm({
     "../picotool-js/node_modules/fast-png/lib/helpers/apply_unfilter.js"() {
       init_unfilter();
+      __name(applyUnfilter, "applyUnfilter");
     }
   });
 
@@ -2368,6 +2438,8 @@ var PicotoolJS = (() => {
       uint16 = new Uint16Array([255]);
       uint8 = new Uint8Array(uint16.buffer);
       osIsLittleEndian = uint8[0] === 255;
+      __name(decodeInterlaceAdam7, "decodeInterlaceAdam7");
+      __name(swap16, "swap16");
     }
   });
 
@@ -2429,6 +2501,8 @@ var PicotoolJS = (() => {
       uint82 = new Uint8Array(uint162.buffer);
       osIsLittleEndian2 = uint82[0] === 255;
       empty = new Uint8Array(0);
+      __name(decodeInterlaceNull, "decodeInterlaceNull");
+      __name(swap162, "swap16");
     }
   });
 
@@ -2456,6 +2530,9 @@ var PicotoolJS = (() => {
   var init_signature = __esm({
     "../picotool-js/node_modules/fast-png/lib/helpers/signature.js"() {
       pngSignature = Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10);
+      __name(writeSignature, "writeSignature");
+      __name(checkSignature, "checkSignature");
+      __name(hasPngSignature, "hasPngSignature");
     }
   });
 
@@ -2507,7 +2584,13 @@ var PicotoolJS = (() => {
       textChunkName = "tEXt";
       NULL = 0;
       latin1Decoder = new TextDecoder("latin1");
+      __name(validateKeyword, "validateKeyword");
       latin1Regex = /^[\u0000-\u00FF]*$/;
+      __name(validateLatin1, "validateLatin1");
+      __name(decodetEXt, "decodetEXt");
+      __name(encodetEXt, "encodetEXt");
+      __name(readKeyword, "readKeyword");
+      __name(readLatin1, "readLatin1");
     }
   });
 
@@ -2567,6 +2650,9 @@ var PicotoolJS = (() => {
       init_text2();
       init_internal_types();
       PngDecoder = class extends IOBuffer {
+        static {
+          __name(this, "PngDecoder");
+        }
         _checkCrc;
         _inflator;
         _png;
@@ -2962,11 +3048,11 @@ var PicotoolJS = (() => {
         }
         addFrameDataToCanvas(imageFrame, frame) {
           const maxValue = 1 << this._png.depth;
-          const calculatePixelIndices = (row, col) => {
+          const calculatePixelIndices = /* @__PURE__ */ __name((row, col) => {
             const index = ((row + frame.yOffset) * this._png.width + frame.xOffset + col) * this._png.channels;
             const frameIndex = (row * frame.width + col) * this._png.channels;
             return { index, frameIndex };
-          };
+          }, "calculatePixelIndices");
           switch (frame.blendOp) {
             case BlendOpType.SOURCE:
               for (let row = 0; row < frame.height; row++) {
@@ -3064,6 +3150,7 @@ var PicotoolJS = (() => {
           this._writingDataChunks = false;
         }
       };
+      __name(checkBitDepth, "checkBitDepth");
     }
   });
 
@@ -3181,6 +3268,9 @@ var PicotoolJS = (() => {
         level: 3
       };
       PngEncoder = class extends IOBuffer {
+        static {
+          __name(this, "PngEncoder");
+        }
         _png;
         _zlibOptions;
         _colorType;
@@ -3299,6 +3389,11 @@ var PicotoolJS = (() => {
           return png;
         }
       };
+      __name(checkInteger, "checkInteger");
+      __name(getColorType, "getColorType");
+      __name(writeDataBytes, "writeDataBytes");
+      __name(writeDataInterlaced, "writeDataInterlaced");
+      __name(writeDataUint16, "writeDataUint16");
     }
   });
 
@@ -3382,6 +3477,8 @@ var PicotoolJS = (() => {
   }
   var init_convert_indexed_to_rgb = __esm({
     "../picotool-js/node_modules/fast-png/lib/convert_indexed_to_rgb.js"() {
+      __name(convertIndexedToRgb, "convertIndexedToRgb");
+      __name(checkDataSize, "checkDataSize");
     }
   });
 
@@ -3414,6 +3511,9 @@ var PicotoolJS = (() => {
       init_signature();
       init_types();
       init_convert_indexed_to_rgb();
+      __name(decodePng, "decodePng");
+      __name(encodePng, "encodePng");
+      __name(decodeApng, "decodeApng");
     }
   });
 
@@ -3430,6 +3530,7 @@ var PicotoolJS = (() => {
         if (typeof value === "string") return latin1Bytes(value);
         return Uint8Array.from(value || []);
       }
+      __name(bytesFrom, "bytesFrom");
       function latin1Bytes(value) {
         const text = String(value);
         const bytes = new Uint8Array(text.length);
@@ -3438,6 +3539,7 @@ var PicotoolJS = (() => {
         }
         return bytes;
       }
+      __name(latin1Bytes, "latin1Bytes");
       function latin1Text(value) {
         const bytes = value instanceof Uint8Array ? value : bytesFrom(value);
         let output = "";
@@ -3447,6 +3549,7 @@ var PicotoolJS = (() => {
         }
         return output;
       }
+      __name(latin1Text, "latin1Text");
       module.exports = Object.freeze({ bytesFrom, latin1Bytes, latin1Text });
     }
   });
@@ -3472,6 +3575,7 @@ var PicotoolJS = (() => {
         if (value instanceof Uint8Array || value instanceof ArrayBuffer || ArrayBuffer.isView(value)) return latin1Text(value);
         return String(value);
       }
+      __name(asString, "asString");
       function pythonBytesRepr(value) {
         const bytes = latin1Bytes(asString(value));
         const quote = bytes.includes(39) && !bytes.includes(34) ? '"' : "'";
@@ -3487,7 +3591,11 @@ var PicotoolJS = (() => {
         }
         return `b${quote}${escaped}${quote}`;
       }
+      __name(pythonBytesRepr, "pythonBytesRepr");
       var Token = class _Token {
+        static {
+          __name(this, "Token");
+        }
         constructor(data, line = null, column = null) {
           this._data = asString(data);
           this.line = line;
@@ -3541,11 +3649,21 @@ var PicotoolJS = (() => {
           static tokenName = tokenName;
         };
       }
+      __name(tokenClass, "tokenClass");
       var TokSpace = class extends tokenClass("space", TYPE_NAMES.space) {
+        static {
+          __name(this, "TokSpace");
+        }
       };
       var TokNewline = class extends tokenClass("newline", TYPE_NAMES.newline) {
+        static {
+          __name(this, "TokNewline");
+        }
       };
       var TokComment = class extends tokenClass("comment", TYPE_NAMES.comment) {
+        static {
+          __name(this, "TokComment");
+        }
       };
       var ESCAPES = new Map(Object.entries({
         a: 7,
@@ -3570,6 +3688,9 @@ var PicotoolJS = (() => {
       REVERSE_ESCAPES.delete(34);
       REVERSE_ESCAPES.delete(39);
       var TokString = class _TokString extends Token {
+        static {
+          __name(this, "TokString");
+        }
         static type = "string";
         static tokenName = TYPE_NAMES.string;
         constructor(data, line = null, column = null, options = {}) {
@@ -3615,6 +3736,9 @@ var PicotoolJS = (() => {
         }
       };
       var TokNumber = class extends tokenClass("number", TYPE_NAMES.number) {
+        static {
+          __name(this, "TokNumber");
+        }
         get value() {
           const data = this._data;
           const lower = data.toLowerCase();
@@ -3628,12 +3752,24 @@ var PicotoolJS = (() => {
         }
       };
       var TokName = class extends tokenClass("name", TYPE_NAMES.name) {
+        static {
+          __name(this, "TokName");
+        }
       };
       var TokLabel = class extends tokenClass("label", TYPE_NAMES.label) {
+        static {
+          __name(this, "TokLabel");
+        }
       };
       var TokKeyword = class extends tokenClass("keyword", TYPE_NAMES.keyword) {
+        static {
+          __name(this, "TokKeyword");
+        }
       };
       var TokSymbol = class extends tokenClass("symbol", TYPE_NAMES.symbol) {
+        static {
+          __name(this, "TokSymbol");
+        }
       };
       var TOKEN_CLASSES = Object.freeze({
         space: TokSpace,
@@ -3651,6 +3787,7 @@ var PicotoolJS = (() => {
         if (!TokenType) throw new TypeError(`Unknown Lua token type: ${type}`);
         return type === "string" ? TokString.fromCode(code, line, column) : new TokenType(code, line, column);
       }
+      __name(createToken, "createToken");
       module.exports = Object.freeze({
         Token,
         TokSpace,
@@ -3709,6 +3846,9 @@ var PicotoolJS = (() => {
         /^\.[0-9]+(?:[eE]-?[0-9]+)?/
       ];
       var LexerError = class extends SyntaxError {
+        static {
+          __name(this, "LexerError");
+        }
         constructor(message, line, column) {
           super(`${message} at line ${line} char ${column}`);
           this.name = "LexerError";
@@ -3718,6 +3858,7 @@ var PicotoolJS = (() => {
         const before = code.slice(0, index), lines = before.split("\n");
         return [lines.length - 1, lines.at(-1).length];
       }
+      __name(position, "position");
       function canonicalQuotedCode(code, start, end) {
         const quote = code[start];
         let output = quote;
@@ -3742,6 +3883,7 @@ var PicotoolJS = (() => {
         }
         return `${output}${quote}`;
       }
+      __name(canonicalQuotedCode, "canonicalQuotedCode");
       function scanLua(source, filename) {
         const bytes = bytesFrom(source);
         const code = latin1Text(bytes);
@@ -3754,6 +3896,7 @@ var PicotoolJS = (() => {
           const [line, column] = position(code, offset);
           tokens.push(tokensApi.createToken(type, value, line, column));
         }
+        __name(add, "add");
         while (index < code.length) {
           const rest = code.slice(index);
           let match;
@@ -3858,16 +4001,20 @@ var PicotoolJS = (() => {
         echo += code.slice(cursor);
         return { characterCount, tokenCount, warnings, echo, tokens };
       }
+      __name(scanLua, "scanLua");
       function analyzeLua(source, filename) {
         const { characterCount, tokenCount, warnings } = scanLua(source, filename);
         return { characterCount, tokenCount, warnings };
       }
+      __name(analyzeLua, "analyzeLua");
       function echoLua(source) {
         return latin1Bytes(scanLua(source).echo);
       }
+      __name(echoLua, "echoLua");
       function tokenizeLua(source) {
         return scanLua(source).tokens;
       }
+      __name(tokenizeLua, "tokenizeLua");
       module.exports = Object.freeze({ analyzeLua, echoLua, tokenizeLua, LexerError, ...tokensApi });
     }
   });
@@ -3881,12 +4028,18 @@ var PicotoolJS = (() => {
       var UNOPS = new Set("- # ~ @ % $ not".split(" "));
       var ASSIGNOPS = new Set("= += -= *= /= %= ..=".split(" "));
       var ParserError = class extends SyntaxError {
+        static {
+          __name(this, "ParserError");
+        }
         constructor(message, token) {
           super(token ? `${message} at line ${token.line + 1} char ${token.column}` : `${message} at end of file`);
           this.name = "ParserError";
         }
       };
       var Parser = class {
+        static {
+          __name(this, "Parser");
+        }
         constructor(tokens) {
           this.tokens = tokens;
           this.pos = 0;
@@ -4176,6 +4329,7 @@ var PicotoolJS = (() => {
       function validateLua(source) {
         new Parser(tokenizeLua(source)).chunk();
       }
+      __name(validateLua, "validateLua");
       module.exports = Object.freeze({ ParserError, validateLua });
     }
   });
@@ -4213,6 +4367,7 @@ var PicotoolJS = (() => {
         function nameForId(id) {
           return (id >= 26 ? nameForId(Math.floor(id / 26)) : "") + String.fromCharCode(97 + id % 26);
         }
+        __name(nameForId, "nameForId");
         function shortName(name) {
           if (options.keepAllNames || PRESERVED.has(name) || kept.has(name)) return name;
           if (!names.has(name)) {
@@ -4225,6 +4380,7 @@ var PicotoolJS = (() => {
           }
           return names.get(name);
         }
+        __name(shortName, "shortName");
         for (const token of tokens) {
           if (!seenNonComment && !["comment", "space", "newline"].includes(token.type)) seenNonComment = true;
           if (!seenNonComment && seenHeaderComments < 2 && token.type === "comment") {
@@ -4255,6 +4411,7 @@ var PicotoolJS = (() => {
         }
         return latin1Bytes(output);
       }
+      __name(minifyLua, "minifyLua");
       module.exports = Object.freeze({ minifyLua });
     }
   });
@@ -4276,8 +4433,8 @@ var PicotoolJS = (() => {
         let inFunction = false;
         let previous = null;
         let output = "";
-        const symbol = (token, ...codes) => token?.type === "symbol" && codes.includes(token.code);
-        const keyword = (token, ...codes) => token?.type === "keyword" && codes.includes(token.code);
+        const symbol = /* @__PURE__ */ __name((token, ...codes) => token?.type === "symbol" && codes.includes(token.code), "symbol");
+        const keyword = /* @__PURE__ */ __name((token, ...codes) => token?.type === "keyword" && codes.includes(token.code), "keyword");
         for (const token of tokens) {
           if (token.type === "newline" || token.type === "space") {
             spaceBuffer += token.code;
@@ -4304,6 +4461,7 @@ ${" ".repeat(Math.max(0, indentLevel * indentwidth))}`;
         return latin1Bytes(`${output}
 `);
       }
+      __name(formatLuaTokens, "formatLuaTokens");
       module.exports = Object.freeze({ formatLuaTokens });
     }
   });
@@ -4319,7 +4477,7 @@ ${" ".repeat(Math.max(0, indentLevel * indentwidth))}`;
       var BUILTINS = require_lua_builtins();
       var KEYWORDS = new Set("and break do else elseif end false for function goto if in local nil not or repeat return then true until while".split(" "));
       var PRESERVED = /* @__PURE__ */ new Set([...KEYWORDS, ...BUILTINS]);
-      var asBytes = (source) => typeof source === "string" ? encodeP8scii(source) : bytesFrom(source);
+      var asBytes = /* @__PURE__ */ __name((source) => typeof source === "string" ? encodeP8scii(source) : bytesFrom(source), "asBytes");
       function checkAstInput(bytes) {
         if (bytes.length && bytes.at(-1) !== 10) {
           const error = new Error("list index out of range");
@@ -4327,12 +4485,14 @@ ${" ".repeat(Math.max(0, indentLevel * indentwidth))}`;
           throw error;
         }
       }
+      __name(checkAstInput, "checkAstInput");
       function echoLuaAst(source) {
         const bytes = asBytes(source);
         validateLua(bytes);
         checkAstInput(bytes);
         return echoLua(bytes);
       }
+      __name(echoLuaAst, "echoLuaAst");
       function minifyLuaAst(source) {
         const bytes = asBytes(source);
         validateLua(bytes);
@@ -4342,6 +4502,7 @@ ${" ".repeat(Math.max(0, indentLevel * indentwidth))}`;
         function nameForId(id) {
           return (id >= 26 ? nameForId(Math.floor(id / 26)) : "") + String.fromCharCode(97 + id % 26);
         }
+        __name(nameForId, "nameForId");
         function shortName(name) {
           if (PRESERVED.has(name)) return name;
           if (!names.has(name)) {
@@ -4353,6 +4514,7 @@ ${" ".repeat(Math.max(0, indentLevel * indentwidth))}`;
           }
           return names.get(name);
         }
+        __name(shortName, "shortName");
         function flushSpace() {
           if (!output) {
             spacing = "";
@@ -4362,6 +4524,7 @@ ${" ".repeat(Math.max(0, indentLevel * indentwidth))}`;
           output += value;
           spacing = "";
         }
+        __name(flushSpace, "flushSpace");
         for (const token of tokens) {
           if (token.type === "comment") continue;
           if (token.type === "space" || token.type === "newline") {
@@ -4379,14 +4542,15 @@ ${" ".repeat(Math.max(0, indentLevel * indentwidth))}`;
         }
         return latin1Bytes(output.trimEnd());
       }
+      __name(minifyLuaAst, "minifyLuaAst");
       function formatLuaAst(source, { indentwidth = 2 } = {}) {
         const bytes = asBytes(source);
         validateLua(bytes);
         checkAstInput(bytes);
         const tokens = tokenizeLua(bytes);
         let output = "", spacing = "", level = 0, functionParams = false;
-        const sym = (token, value) => token.type === "symbol" && token.code === value;
-        const key = (token, value) => token.type === "keyword" && token.code === value;
+        const sym = /* @__PURE__ */ __name((token, value) => token.type === "symbol" && token.code === value, "sym");
+        const key = /* @__PURE__ */ __name((token, value) => token.type === "keyword" && token.code === value, "key");
         for (const token of tokens) {
           if (token.type === "space" || token.type === "newline") {
             spacing += token.code;
@@ -4418,6 +4582,7 @@ ${" ".repeat(Math.max(0, level * indentwidth))}`);
         if (!output.endsWith("\n")) output += "\n";
         return latin1Bytes(output);
       }
+      __name(formatLuaAst, "formatLuaAst");
       module.exports = Object.freeze({ echoLuaAst, minifyLuaAst, formatLuaAst });
     }
   });
@@ -4468,9 +4633,11 @@ ${music.toLines().join("")}
 `;
         return { bytes: base.encodeUtf8(output), ...diagnostics };
       }
+      __name(writeP8WithDiagnostics, "writeP8WithDiagnostics");
       function writeP8(source, options) {
         return writeP8WithDiagnostics(source, options).bytes;
       }
+      __name(writeP8, "writeP8");
       module.exports = Object.freeze({ writeP8, writeP8WithDiagnostics });
     }
   });
@@ -4484,6 +4651,7 @@ ${music.toLines().join("")}
       function codec() {
         return codecPromise ??= Promise.resolve().then(() => (init_lib(), lib_exports));
       }
+      __name(codec, "codec");
       async function decodePng2(input) {
         const { decode: decode2, convertIndexedToRgb: convertIndexedToRgb2 } = await codec();
         let image = decode2(input instanceof Uint8Array ? input : new Uint8Array(input), { checkCrc: true });
@@ -4492,15 +4660,18 @@ ${music.toLines().join("")}
         if (image.channels !== 4) throw new Error(`Unsupported PNG channel count ${image.channels}; expected RGBA`);
         return { width: image.width, height: image.height, rgba: Uint8Array.from(image.data) };
       }
+      __name(decodePng2, "decodePng");
       async function encodePng2({ width, height, rgba }) {
         const { encode: encode2 } = await codec();
         return encode2({ width, height, data: rgba, depth: 8, channels: 4 });
       }
+      __name(encodePng2, "encodePng");
       async function readP8Png(input) {
         const image = await decodePng2(input);
         const picodata = base.getPicodataFromRgba(image.width, image.height, image.rgba);
         return { ...image, picodata, cartridge: base.parseP8PngPicodata(picodata) };
       }
+      __name(readP8Png, "readP8Png");
       async function writeP8Png(cartridge, labelPng, luaBytes) {
         const label = await decodePng2(labelPng);
         const picodata = base.serializeP8PngPicodata(cartridge, luaBytes);
@@ -4508,6 +4679,7 @@ ${music.toLines().join("")}
         const rgba = base.getRgbaFromPicodata(picodata, label.rgba);
         return encodePng2({ width: label.width, height: label.height, rgba });
       }
+      __name(writeP8Png, "writeP8Png");
       async function writeP8PngFromP8(source, labelPng, options = {}) {
         const { writeP8 } = require_p8writer();
         const parsed = base.parseP8(writeP8(source, options));
@@ -4523,6 +4695,7 @@ ${music.toLines().join("")}
         };
         return writeP8Png(cartridge, labelPng, base.encodeP8scii((sections.lua || []).join("")));
       }
+      __name(writeP8PngFromP8, "writeP8PngFromP8");
       module.exports = Object.freeze({ decodePng: decodePng2, encodePng: encodePng2, readP8Png, writeP8Png, writeP8PngFromP8 });
     }
   });
@@ -4535,6 +4708,9 @@ ${music.toLines().join("")}
       var { writeP8 } = require_p8writer();
       var { readP8Png, writeP8Png, writeP8PngFromP8, encodePng: encodePng2 } = require_png_transport();
       var UnrecognizedFileType = class extends base.P8Error {
+        static {
+          __name(this, "UnrecognizedFileType");
+        }
         constructor(filename) {
           super("UNRECOGNIZED_FILE_TYPE", `Filename ${filename} is not of a supported type`, filename);
           this.name = "UnrecognizedFileType";
@@ -4547,17 +4723,20 @@ ${music.toLines().join("")}
         if (filename.endsWith(".rom")) return "rom";
         throw new UnrecognizedFileType(filename);
       }
+      __name(formatForFilename, "formatForFilename");
       function unsupportedRom() {
         const error = new Error("");
         error.name = "NotImplementedError";
         throw error;
       }
+      __name(unsupportedRom, "unsupportedRom");
       async function fromBytes(input, filename) {
         const format = formatForFilename(filename);
         if (format === "rom") unsupportedRom();
         if (format === "p8") return base.parseP8(input);
         return (await readP8Png(input)).cartridge;
       }
+      __name(fromBytes, "fromBytes");
       function p8FromCartridge(cartridge) {
         const storedCode = cartridge.code?.code ?? new Uint8Array();
         const luaBytes = cartridge.code?.codeLength == null ? storedCode : storedCode.slice(0, cartridge.code.codeLength);
@@ -4577,9 +4756,11 @@ ${music.toLines().join("")}
           sections
         });
       }
+      __name(p8FromCartridge, "p8FromCartridge");
       async function emptyLabelPng() {
         return encodePng2({ width: 160, height: 205, rgba: new Uint8Array(160 * 205 * 4).fill(255) });
       }
+      __name(emptyLabelPng, "emptyLabelPng");
       async function toBytes(cartridge, filename, options = {}) {
         const format = formatForFilename(filename);
         if (format === "rom") unsupportedRom();
@@ -4591,6 +4772,7 @@ ${music.toLines().join("")}
         const luaBytes = options.luaBytes ?? (cartridge.code?.codeLength == null ? storedCode : storedCode.slice(0, cartridge.code.codeLength));
         return writeP8Png(cartridge, labelPng, luaBytes);
       }
+      __name(toBytes, "toBytes");
       module.exports = Object.freeze({
         UnrecognizedFileType,
         formatForFilename,
@@ -4623,6 +4805,7 @@ ${music.toLines().join("")}
           label: base.Gfx.empty(version)
         };
       }
+      __name(makeEmptyCartridge, "makeEmptyCartridge");
       function writeCartData(cartridge, input, startAddress = 0) {
         const data = input instanceof Uint8Array ? input : Uint8Array.from(input);
         if (!Number.isInteger(startAddress) || startAddress < 0 || startAddress + data.length > 17152) {
@@ -4646,9 +4829,11 @@ ${music.toLines().join("")}
         }
         return cartridge;
       }
+      __name(writeCartData, "writeCartData");
       function cartridgeCompressedSize(cartridge) {
         return cartridge.compressedSize ?? base.compressCode(cartridge.code?.code ?? new Uint8Array()).length;
       }
+      __name(cartridgeCompressedSize, "cartridgeCompressedSize");
       module.exports = Object.freeze({ makeEmptyCartridge, writeCartData, cartridgeCompressedSize });
     }
   });
@@ -4660,9 +4845,15 @@ ${music.toLines().join("")}
       var { latin1Text } = require_bytes();
       var { tokenizeLua, TokName, TokSymbol, TokKeyword } = require_lua_lexer();
       var LuaAstError = class extends SyntaxError {
+        static {
+          __name(this, "LuaAstError");
+        }
       };
       var NODE_CLASS_BY_TYPE = /* @__PURE__ */ Object.create(null);
       var Node = class _Node {
+        static {
+          __name(this, "Node");
+        }
         constructor(type, fields = {}, first = null, last = null, source = "") {
           const named = NODE_CLASS_BY_TYPE[type];
           if (named && Object.getPrototypeOf(this) !== named.prototype) Object.setPrototypeOf(this, named.prototype);
@@ -4686,7 +4877,7 @@ ${music.toLines().join("")}
         storeTokenGroups(tokenlist) {
           let position = this.start_pos ?? 0;
           this._token_groups = [];
-          const add = (field, value) => {
+          const add = /* @__PURE__ */ __name((field, value) => {
             if (value instanceof _Node) {
               this._token_groups.push([field, tokenlist.slice(position, value.start_pos)]);
               value.storeTokenGroups(tokenlist);
@@ -4707,7 +4898,7 @@ ${music.toLines().join("")}
               this._token_groups.push(tokenlist.slice(position, position + 1));
               position += 1;
             }
-          };
+          }, "add");
           for (const field of this._fields) add(field, this[field]);
           this._token_groups.push(tokenlist.slice(position, this.end_pos));
           return this;
@@ -4735,10 +4926,10 @@ ${music.toLines().join("")}
           for (const value of Object.values(this)) {
             if (value instanceof _Node) out.push(value);
             else if (Array.isArray(value)) {
-              const collect = (item) => {
+              const collect = /* @__PURE__ */ __name((item) => {
                 if (item instanceof _Node) out.push(item);
                 else if (Array.isArray(item)) for (const nested of item) collect(nested);
-              };
+              }, "collect");
               for (const item of value) collect(item);
             }
           }
@@ -4784,7 +4975,7 @@ ${music.toLines().join("")}
         LabelStatement: { name: "label" }
       };
       var PYTHON_NAMES = { AssignmentStatement: "StatAssignment", CallStatement: "StatFunctionCall", DoStatement: "StatDo", WhileStatement: "StatWhile", RepeatStatement: "StatRepeat", IfStatement: "StatIf", BreakStatement: "StatBreak", ReturnStatement: "StatReturn", GotoStatement: "StatGoto", LabelStatement: "StatLabel", ForNumericStatement: "StatForStep", ForInStatement: "StatForIn", FunctionStatement: "StatFunction", LocalFunctionStatement: "StatLocalFunction", LocalAssignmentStatement: "StatLocalAssignment", BinaryExpression: "ExpBinOp", UnaryExpression: "ExpUnOp", NameExpression: "VarName", NumberLiteral: "ExpValue", StringLiteral: "ExpValue", TableExpression: "TableConstructor", CallExpression: "FunctionCall", FunctionExpression: "Function", IndexExpression: "VarIndex", MemberExpression: "VarAttribute", Chunk: "Chunk" };
-      var node = (type, fields, first, last, source) => {
+      var node = /* @__PURE__ */ __name((type, fields, first, last, source) => {
         const mapped = {};
         const renames = PYTHON_FIELDS[type] || {};
         for (const [key, value] of Object.entries(fields)) mapped[renames[key] || key] = value;
@@ -4821,7 +5012,7 @@ ${music.toLines().join("")}
           });
           Object.defineProperty(mapped.args, "length", { value: inner.exps.length, enumerable: false });
         }
-        if (type === "CallExpression" && mapped.args === null) mapped.args = wrapNode("FunctionArgs", { explist: null }, first ? { ...first, tokenPos: first.tokenPos + 1 } : first, last, source);
+        if (type === "CallExpression" && mapped.args === null) mapped.args = wrapNode("FunctionArgs", { explist: null }, first ? { ...first, code: first.code, tokenPos: first.tokenPos + 1 } : first, last, source);
         if (type === "ForInStatement") {
           mapped.namelist = wrapNode("NameList", { names: fields.names }, first, last, source);
           mapped.explist = wrapNode("ExpList", { exps: fields.values }, first, last, source);
@@ -4894,7 +5085,7 @@ ${music.toLines().join("")}
         if (type === "MemberExpression" && typeof n.attr_name === "string") n.attr_name = tokenAtText(n.attr_name, source, n.start.offset, TokName);
         if ((type === "StatGoto" || type === "StatLabel") && typeof n.label === "string") n.label = tokenAtText(n.label, source, n.start.offset, type === "StatLabel" ? require_lua_token().TokLabel : TokName);
         return n;
-      };
+      }, "node");
       function wrapNode(type, fields, first, last, source) {
         const n = new Node(type, fields, first, last, source);
         n.type = type;
@@ -4903,6 +5094,7 @@ ${music.toLines().join("")}
         if (type === "FunctionName" && Array.isArray(n.namepath) && typeof n.namepath[0] === "string") n.namepath = tokenizedNames(n.namepath, source, n.start.offset);
         return n;
       }
+      __name(wrapNode, "wrapNode");
       function makeExpList(values, first, last, source) {
         const n = wrapNode("ExpList", { exps: values }, first, last, source);
         values.forEach((v, i2) => {
@@ -4911,21 +5103,25 @@ ${music.toLines().join("")}
         Object.defineProperty(n, "length", { value: values.length, enumerable: false });
         return n;
       }
+      __name(makeExpList, "makeExpList");
       function tokenFromNode(n, source, end = false) {
         if (!n) return null;
         const p = end ? n.range.end : n.range.start;
         return { tokenPos: end ? n.end_pos - 1 : n.start_pos, line: p.line, column: p.column, code: end ? "" : source.slice(n.range.start.offset, n.range.end.offset) };
       }
+      __name(tokenFromNode, "tokenFromNode");
       function findCodePosition(source, code, offset = 0) {
         const at = String(source).indexOf(code, Math.max(0, offset));
         const before = String(source).slice(0, at < 0 ? offset : at);
         const lines = before.split(/\n/);
         return { line: lines.length - 1, column: lines.at(-1).length };
       }
+      __name(findCodePosition, "findCodePosition");
       function tokenAtText(text, source, offset, Klass) {
         const p = findCodePosition(source, text, offset);
         return new Klass(text, p.line, p.column);
       }
+      __name(tokenAtText, "tokenAtText");
       function tokenizedNames(names, source, offset) {
         let at = offset;
         return names.map((name) => {
@@ -4934,11 +5130,13 @@ ${music.toLines().join("")}
           return token;
         });
       }
+      __name(tokenizedNames, "tokenizedNames");
       function makeRange(first, last, source) {
         if (!first || !last) return { start: { line: 0, column: 0, offset: 0 }, end: { line: 0, column: 0, offset: 0 } };
         const start = point(first, source), end = point(last, source, true);
         return { start, end };
       }
+      __name(makeRange, "makeRange");
       function point(token, source, end = false) {
         const line = token.line ?? 0, column = token.column ?? 0;
         const lines = String(source).split(/\n/);
@@ -4948,11 +5146,20 @@ ${music.toLines().join("")}
         if (end) offset += token.code.length;
         return { line, column: end ? column + token.code.length : column, offset };
       }
+      __name(point, "point");
       var AstParser = class {
+        static {
+          __name(this, "AstParser");
+        }
         constructor(source) {
           this.source = typeof source === "string" ? source : latin1Text(source);
           const allTokens = tokenizeLua(this.source);
           this.allTokens = allTokens;
+          const lineOffsets = [0];
+          for (let index = 0; index < this.source.length; index++) {
+            if (this.source[index] === "\n") lineOffsets.push(index + 1);
+          }
+          for (const token of allTokens) token.sourceOffset = lineOffsets[token.line] + token.column;
           this.tokens = allTokens.filter((t, pos) => {
             if (["space", "newline", "comment"].includes(t.type)) return false;
             t.tokenPos = pos;
@@ -5007,8 +5214,8 @@ ${music.toLines().join("")}
         statement() {
           let first = this.peek();
           const prior = this.tokens[this.i - 1];
-          if (first && !prior && first.tokenPos > 0) first = { ...first, actualTokenPos: first.tokenPos, tokenPos: 0 };
-          else if (first && prior && first.tokenPos - prior.tokenPos > 1) first = { ...first, actualTokenPos: first.tokenPos, tokenPos: prior.tokenPos + 1 };
+          if (first && !prior && first.tokenPos > 0) first = { ...first, code: first.code, actualTokenPos: first.tokenPos, tokenPos: 0 };
+          else if (first && prior && first.tokenPos - prior.tokenPos > 1) first = { ...first, code: first.code, actualTokenPos: first.tokenPos, tokenPos: prior.tokenPos + 1 };
           if (this.keyword("return")) return node("ReturnStatement", { values: this.peek() && !this.at("symbol", ";") && !this.at("keyword", "end") && !this.at("keyword", "else") && !this.at("keyword", "elseif") ? this.explist() : [] }, first, this.tokens[this.i - 1], this.source);
           if (this.keyword("break")) return node("BreakStatement", {}, first, this.tokens[this.i - 1], this.source);
           if (this.keyword("goto")) {
@@ -5069,7 +5276,7 @@ ${music.toLines().join("")}
         block(until) {
           let first = this.peek();
           const before = this.tokens[this.i - 1];
-          if (first && before && first.tokenPos - before.tokenPos > 1) first = { ...first, tokenPos: before.tokenPos + 1 };
+          if (first && before && first.tokenPos - before.tokenPos > 1) first = { ...first, code: first.code, tokenPos: before.tokenPos + 1 };
           const body = [];
           while (this.peek() && !this.at("keyword", until) && !this.at("keyword", "elseif") && !this.at("keyword", "else")) {
             if (this.symbol(";")) continue;
@@ -5087,7 +5294,7 @@ ${music.toLines().join("")}
           const gotDo = !gotThen && this.keyword("do");
           if (!gotThen && !gotDo) {
             const shortBody = this.statement();
-            const body2 = node("Chunk", { body: [shortBody] }, { ...this.tokens[this.i - 1], tokenPos: Math.max(0, this.tokens[this.i - 1].tokenPos - 1) }, this.tokens[this.i - 1], this.source);
+            const body2 = node("Chunk", { body: [shortBody] }, { ...this.tokens[this.i - 1], code: this.tokens[this.i - 1].code, tokenPos: Math.max(0, this.tokens[this.i - 1].tokenPos - 1) }, this.tokens[this.i - 1], this.source);
             Object.defineProperty(body2, "body", { value: body2.stats, enumerable: false });
             pairs.push([condition, body2]);
             const elseToken = this.keyword("else");
@@ -5095,7 +5302,7 @@ ${music.toLines().join("")}
               const sameLine = this.peek() && this.peek().line === elseToken.line;
               const elseStat = sameLine ? this.statement() : null;
               if (elseStat) {
-                const elseBody2 = node("Chunk", { body: [elseStat] }, { ...this.tokens[this.i - 1], tokenPos: Math.max(0, this.tokens[this.i - 1].tokenPos - 1) }, this.tokens[this.i - 1], this.source);
+                const elseBody2 = node("Chunk", { body: [elseStat] }, { ...this.tokens[this.i - 1], code: this.tokens[this.i - 1].code, tokenPos: Math.max(0, this.tokens[this.i - 1].tokenPos - 1) }, this.tokens[this.i - 1], this.source);
                 Object.defineProperty(elseBody2, "body", { value: elseBody2.stats, enumerable: false });
                 pairs.push([null, elseBody2]);
               }
@@ -5225,7 +5432,7 @@ ${music.toLines().join("")}
         }
         expression(min = 0) {
           let left = this.prefix();
-          const binops = /* @__PURE__ */ new Set(["or", "and", "==", "~=", "!=", "<", ">", "<=", ">=", "|", "^^", "&", "<<", ">>", "..", "+", "-", "*", "/", "%", "^"]);
+          const binops = /* @__PURE__ */ new Set(["or", "and", "==", "~=", "!=", "<", ">", "<=", ">=", "|", "^^", "&", "<<", ">>", ">>>", "<<>", ">><", "..", "+", "-", "*", "/", "\\", "%", "^"]);
           while (this.peek() && (this.at("symbol") || this.at("keyword")) && binops.has(this.peek().code)) {
             const opToken = this.take(this.peek().type);
             const right = this.prefix();
@@ -5301,10 +5508,10 @@ ${music.toLines().join("")}
           else if (["CallExpression", "FunctionCall"].includes(value.type)) {
             value._start_token_pos += 1;
             const startPos = preceding && first.tokenPos - preceding.tokenPos > 1 ? preceding.tokenPos + 1 : first.tokenPos;
-            value = node("ExpValue", { value }, { ...first, tokenPos: startPos }, this.tokens[this.i - 1], this.source);
+            value = node("ExpValue", { value }, { ...first, code: first.code, tokenPos: startPos }, this.tokens[this.i - 1], this.source);
           } else {
             const startPos = preceding && first.tokenPos - preceding.tokenPos > 1 ? preceding.tokenPos + 1 : first.tokenPos;
-            value = node("ExpValue", { value }, { ...first, tokenPos: startPos }, this.tokens[this.i - 1], this.source);
+            value = node("ExpValue", { value }, { ...first, code: first.code, tokenPos: startPos }, this.tokens[this.i - 1], this.source);
           }
           return value;
         }
@@ -5330,7 +5537,7 @@ ${music.toLines().join("")}
             let key = null, value, explicit = false, fieldStart = this.peek();
             if (this.symbol("[")) {
               explicit = true;
-              fieldStart = { ...this.tokens[this.i - 1], tokenPos: this.tokens[this.i - 1].tokenPos - 1 };
+              fieldStart = { ...this.tokens[this.i - 1], code: this.tokens[this.i - 1].code, tokenPos: this.tokens[this.i - 1].tokenPos - 1 };
               key = this.expression();
               this.expect("symbol", "]");
               this.expect("symbol", "=");
@@ -5358,21 +5565,25 @@ ${music.toLines().join("")}
       function parseLua(source) {
         return new AstParser(source).parse();
       }
+      __name(parseLua, "parseLua");
       function tokenAtOffset(tokens, offset, source) {
-        let candidate = tokens[0];
-        const lines = String(source).split(/\n/);
-        for (const token of tokens) {
-          let point2 = token.column;
-          for (let i2 = 0; i2 < token.line; i2++) point2 += lines[i2].length + 1;
-          if (point2 <= offset) candidate = token;
+        let low = 0, high = tokens.length - 1;
+        while (low <= high) {
+          const middle = low + high >>> 1;
+          if (tokens[middle].sourceOffset <= offset) low = middle + 1;
+          else high = middle - 1;
         }
-        return candidate;
+        return tokens[Math.max(0, high)];
       }
+      __name(tokenAtOffset, "tokenAtOffset");
       var PYTHON_NODE_TYPES = ["Chunk", "StatAssignment", "StatFunctionCall", "StatDo", "StatWhile", "StatRepeat", "StatIf", "StatForStep", "StatForIn", "StatFunction", "StatLocalFunction", "StatLocalAssignment", "StatGoto", "StatLabel", "StatBreak", "StatReturn", "FunctionName", "FunctionArgs", "VarList", "VarName", "VarIndex", "VarAttribute", "NameList", "ExpList", "ExpValue", "VarargDots", "ExpBinOp", "ExpUnOp", "FunctionCall", "FunctionCallMethod", "Function", "FunctionBody", "TableConstructor", "FieldExp", "FieldExpKey", "FieldNamedKey"];
       var NAMED_FIELDS = { Chunk: ["stats"], StatAssignment: ["varlist", "assignop", "explist"], StatFunctionCall: ["functioncall"], StatDo: ["block"], StatWhile: ["exp", "block"], StatRepeat: ["block", "exp"], StatIf: ["exp_block_pairs"], StatForStep: ["name", "exp_init", "exp_end", "exp_step", "block"], StatForIn: ["namelist", "explist", "block"], StatFunction: ["funcname", "funcbody"], StatLocalFunction: ["funcname", "funcbody"], StatLocalAssignment: ["namelist", "explist"], StatGoto: ["label"], StatLabel: ["label"], StatReturn: ["explist"], FunctionName: ["namepath", "methodname"], FunctionArgs: ["explist"], VarList: ["vars"], VarName: ["name"], VarIndex: ["exp_prefix", "exp_index"], VarAttribute: ["exp_prefix", "attr_name"], NameList: ["names"], ExpList: ["exps"], ExpValue: ["value"], VarargDots: [], ExpBinOp: ["exp1", "binop", "exp2"], ExpUnOp: ["unop", "exp"], FunctionCall: ["exp_prefix", "args"], FunctionCallMethod: ["exp_prefix", "methodname", "args"], Function: ["funcbody"], FunctionBody: ["parlist", "dots", "block"], TableConstructor: ["fields"], FieldExp: ["exp"], FieldExpKey: ["key_exp", "exp"], FieldNamedKey: ["key_name", "exp"] };
       var exportsMap = { Node, LuaNode: Node, LuaAstError, parseLua, parseLuaAst: parseLua, AstParser };
       for (const name of PYTHON_NODE_TYPES) {
         const Named = class extends Node {
+          static {
+            __name(this, "Named");
+          }
           constructor(...args) {
             const names = NAMED_FIELDS[name] || [];
             const options = args.length === names.length + 1 && args.at(-1) && typeof args.at(-1) === "object" && !Array.isArray(args.at(-1)) ? args.pop() : {};
@@ -5410,6 +5621,9 @@ ${music.toLines().join("")}
       var { Token } = require_lua_token();
       var ast = require_lua_ast_model();
       var BaseASTWalker = class {
+        static {
+          __name(this, "BaseASTWalker");
+        }
         constructor(tokens, root, args = {}) {
           this._tokens = tokens;
           this._root = root;
@@ -5467,6 +5681,7 @@ ${music.toLines().join("")}
         if (typeof value === "string") return `b'${value.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n")}'`;
         return String(value);
       }
+      __name(scalar, "scalar");
       function printNode(value, indent = 0, prefix = "", output = []) {
         const pad = " ".repeat(indent);
         if (value instanceof Node || value && Array.isArray(value._fields)) {
@@ -5483,9 +5698,11 @@ ${music.toLines().join("")}
         }
         return output;
       }
+      __name(printNode, "printNode");
       function printAst(source) {
         return printNode(parseLua(source)).join("");
       }
+      __name(printAst, "printAst");
       module.exports = Object.freeze({ printAst, printNode });
     }
   });
@@ -5508,6 +5725,7 @@ ${music.toLines().join("")}
         const output = `${absolute ? "/" : ""}${parts.join("/")}`;
         return output || (absolute ? "/" : ".");
       }
+      __name(normalize, "normalize");
       function dirname(value) {
         const normalized = normalize(value);
         if (normalized === "/" || normalized === ".") return normalized;
@@ -5515,12 +5733,15 @@ ${music.toLines().join("")}
         if (separator < 0) return ".";
         return separator === 0 ? "/" : normalized.slice(0, separator);
       }
+      __name(dirname, "dirname");
       function join(...values) {
         return normalize(values.filter((value) => value !== "").join("/"));
       }
+      __name(join, "join");
       function isAbsolute(value) {
         return String(value).replace(/\\/g, "/").startsWith("/");
       }
+      __name(isAbsolute, "isAbsolute");
       module.exports = Object.freeze({ dirname, isAbsolute, join, normalize });
     }
   });
@@ -5538,6 +5759,9 @@ ${music.toLines().join("")}
       var REQUIRE_FUNCTION = "function require(p)\nlocal l=package.loaded\nif (l[p]==nil) l[p]=package._c[p]()\nif (l[p]==nil) l[p]=true\nreturn l[p]\nend\n";
       var GAME_LOOP_NAMES = /* @__PURE__ */ new Set(["_init", "_update", "_update60", "_draw"]);
       var LuaBuildError = class extends Error {
+        static {
+          __name(this, "LuaBuildError");
+        }
         constructor(message, token) {
           super(`${message} at line ${token.line + 1} char ${token.column}`);
           this.name = "LuaBuildError";
@@ -5546,6 +5770,7 @@ ${music.toLines().join("")}
       function significant(source) {
         return tokenizeLua(source).filter((token) => !["space", "newline", "comment"].includes(token.type));
       }
+      __name(significant, "significant");
       function stringValue(code) {
         if (!code || !['"', "'"].includes(code[0])) return null;
         const body = code.slice(1, -1);
@@ -5555,6 +5780,7 @@ ${music.toLines().join("")}
           return String.fromCharCode(values[escape] ?? escape.charCodeAt(0));
         });
       }
+      __name(stringValue, "stringValue");
       function calls(source) {
         const tokens = significant(source), found = [];
         function pythonAttributeError(message) {
@@ -5562,6 +5788,7 @@ ${music.toLines().join("")}
           error.name = "AttributeError";
           throw error;
         }
+        __name(pythonAttributeError, "pythonAttributeError");
         function insideAnotherCall(index) {
           const stack = [];
           for (let j = 0; j < index; j += 1) {
@@ -5571,6 +5798,7 @@ ${music.toLines().join("")}
           }
           return stack.includes(true);
         }
+        __name(insideAnotherCall, "insideAnotherCall");
         for (let i2 = 0; i2 + 1 < tokens.length; i2 += 1) {
           if (tokens[i2].type !== "name" || tokens[i2].code !== "require") continue;
           if (i2 > 0 && [".", ":"].includes(tokens[i2 - 1].code)) continue;
@@ -5617,12 +5845,13 @@ ${music.toLines().join("")}
         }
         return found;
       }
+      __name(calls, "calls");
       function removeGameLoops(source) {
         const tokens = significant(latin1Bytes(source));
         const lines = source.split("\n");
         const offsets = [0];
         for (let i2 = 0; i2 < lines.length - 1; i2 += 1) offsets.push(offsets.at(-1) + lines[i2].length + 1);
-        const offset = (token) => offsets[token.line] + token.column;
+        const offset = /* @__PURE__ */ __name((token) => offsets[token.line] + token.column, "offset");
         const ranges = [];
         for (let i2 = 0; i2 + 1 < tokens.length; i2 += 1) {
           if (tokens[i2].code !== "function" || !GAME_LOOP_NAMES.has(tokens[i2 + 1].code)) continue;
@@ -5666,6 +5895,7 @@ ${music.toLines().join("")}
         }
         return result + source.slice(cursor);
       }
+      __name(removeGameLoops, "removeGameLoops");
       function bundleRequiredLua(source, { filename = "main.lua", files = {}, luaPath } = {}) {
         const main = typeof source === "string" ? encodeP8scii(source) : bytesFrom(source);
         validateLua(main);
@@ -5700,6 +5930,7 @@ ${music.toLines().join("")}
             visit(moduleBytes, selected);
           }
         }
+        __name(visit, "visit");
         visit(main, filename);
         if (!modules.size) return echoLua(main);
         let output = PREAMBLE;
@@ -5712,6 +5943,7 @@ ${moduleCode}end
         validateLua(latin1Bytes(output));
         return latin1Bytes(output);
       }
+      __name(bundleRequiredLua, "bundleRequiredLua");
       module.exports = Object.freeze({ bundleRequiredLua, LuaBuildError });
     }
   });
@@ -5727,17 +5959,18 @@ ${moduleCode}end
       var DEFAULT_VERSION = 33;
       var DOMAINS = ["lua", "gfx", "gff", "map", "sfx", "music"];
       var EMPTY = {
-        gfx: () => base.Gfx.empty(DEFAULT_VERSION).toLines(),
-        gff: () => base.Gff.empty(DEFAULT_VERSION).toLines(),
-        map: () => base.MapSection.empty(DEFAULT_VERSION).toLines(),
-        sfx: () => base.Sfx.empty(DEFAULT_VERSION).toLines(),
-        music: () => base.Music.empty(DEFAULT_VERSION).toLines()
+        gfx: /* @__PURE__ */ __name(() => base.Gfx.empty(DEFAULT_VERSION).toLines(), "gfx"),
+        gff: /* @__PURE__ */ __name(() => base.Gff.empty(DEFAULT_VERSION).toLines(), "gff"),
+        map: /* @__PURE__ */ __name(() => base.MapSection.empty(DEFAULT_VERSION).toLines(), "map"),
+        sfx: /* @__PURE__ */ __name(() => base.Sfx.empty(DEFAULT_VERSION).toLines(), "sfx"),
+        music: /* @__PURE__ */ __name(() => base.Music.empty(DEFAULT_VERSION).toLines(), "music")
       };
       function emptySections() {
         const sections = { lua: [], label: base.Gfx.empty(DEFAULT_VERSION).toLines() };
         for (const [name, factory] of Object.entries(EMPTY)) sections[name] = factory();
         return sections;
       }
+      __name(emptySections, "emptySections");
       function buildP8({
         existing,
         sources = {},
@@ -5781,6 +6014,7 @@ ${moduleCode}end
         const writer = luaFormat ? { luaWriter: "ast-format", formatOptions: { indentwidth } } : luaMinify ? { luaWriter: "minify", minifyOptions: { keepAllNames, keepNames } } : void 0;
         return writeP8({ format: "p8", version, sections }, writer);
       }
+      __name(buildP8, "buildP8");
       module.exports = Object.freeze({ buildP8, DEFAULT_VERSION });
     }
   });
@@ -5804,12 +6038,12 @@ ${moduleCode}end
           if (ended) tokens = tokens.slice(0, -1);
           if (!tokens.length) return "\n";
           tokens = tokens.map((token) => ({ type: token.type, code: token.code }));
-          const find = (type, value, start = 0) => tokens.findIndex((token, index) => index >= start && token.type === type && token.code === value);
-          const nextNonspace = (start = 0) => {
+          const find = /* @__PURE__ */ __name((type, value, start = 0) => tokens.findIndex((token, index) => index >= start && token.type === type && token.code === value), "find");
+          const nextNonspace = /* @__PURE__ */ __name((start = 0) => {
             let index = start;
             while (tokens[index]?.type === "space") index += 1;
             return index < tokens.length ? index : -1;
-          };
+          }, "nextNonspace");
           if (tokens.at(-1).type === "comment" && tokens.at(-1).code.startsWith("//")) {
             tokens.at(-1).code = `--${tokens.at(-1).code.slice(2)}`;
           }
@@ -5857,6 +6091,7 @@ ${moduleCode}end
           return `${tokens.map((token) => token.code).join("")}
 `;
         }
+        __name(emit, "emit");
         for (const token of tokenizeLua(bytes)) {
           line.push(token);
           if (token.type === "newline") {
@@ -5867,6 +6102,7 @@ ${moduleCode}end
         if (line.length) output.push(emit(line));
         return latin1Bytes(output.join(""));
       }
+      __name(pureLua, "pureLua");
       module.exports = Object.freeze({ pureLua });
     }
   });
@@ -5885,7 +6121,7 @@ ${moduleCode}end
         const diagnostics = analyzeLua(lua);
         validateLua(lua);
         const tokens = tokenizeLua(lua);
-        const comment = (index) => tokens[index]?.type === "comment" ? latin1Bytes(tokens[index].code.slice(2).replace(/^[\x09-\x0d\x20]+|[\x09-\x0d\x20]+$/g, "")) : null;
+        const comment = /* @__PURE__ */ __name((index) => tokens[index]?.type === "comment" ? latin1Bytes(tokens[index].code.slice(2).replace(/^[\x09-\x0d\x20]+|[\x09-\x0d\x20]+$/g, "")) : null, "comment");
         return {
           title: comment(0),
           byline: comment(2),
@@ -5896,6 +6132,7 @@ ${moduleCode}end
           compressedSize: base.compressCode(echoLua(lua)).length
         };
       }
+      __name(cartridgeStats, "cartridgeStats");
       module.exports = Object.freeze({ cartridgeStats });
     }
   });
@@ -5911,19 +6148,23 @@ ${moduleCode}end
       function friendly(bytes) {
         return latin1Text(bytes).replace(/[\x80-\xff]/g, "_");
       }
+      __name(friendly, "friendly");
       function lines(bytes) {
         return latin1Text(bytes).match(/[^\n]*\n|[^\n]+$/g) || [];
       }
+      __name(lines, "lines");
       function listLua(source, { pure = false, showLineNumbers = false } = {}) {
         const parsed = source?.format === "p8" ? source : base.parseP8(source);
         const lua = base.encodeP8scii((parsed.sections.lua || []).join(""));
         const output = pure ? pureLua(lua) : echoLua(lua);
         return lines(output).map((line, index) => `${showLineNumbers ? `${index}: ` : ""}${friendly(latin1Bytes(line))}`).join("") + "\n";
       }
+      __name(listLua, "listLua");
       function pythonFloat(value) {
         const number = Number(value);
         return Number.isInteger(number) ? `${number}.0` : String(number);
       }
+      __name(pythonFloat, "pythonFloat");
       function pythonBytesRepr(value) {
         const bytes = latin1Bytes(value);
         const hasSingle = bytes.includes(39), hasDouble = bytes.includes(34);
@@ -5940,6 +6181,7 @@ ${moduleCode}end
         }
         return output + quote;
       }
+      __name(pythonBytesRepr, "pythonBytesRepr");
       function listTokens(source) {
         const parsed = source?.format === "p8" ? source : base.parseP8(source);
         const lua = base.encodeP8scii((parsed.sections.lua || []).join(""));
@@ -5956,6 +6198,7 @@ ${moduleCode}end
         return `${output}
 `;
       }
+      __name(listTokens, "listTokens");
       module.exports = Object.freeze({ listLua, listTokens });
     }
   });
@@ -5971,6 +6214,7 @@ ${moduleCode}end
       function friendly(value) {
         return latin1Text(typeof value === "string" ? Uint8Array.from(value, (character) => character.charCodeAt(0)) : value).replace(/[\x80-\xff]/g, "_");
       }
+      __name(friendly, "friendly");
       function findLua(source, pattern, { filename = "<cartridge>", listFiles = false } = {}) {
         const parsed = source?.format === "p8" ? source : base.parseP8(source);
         const lua = base.encodeP8scii((parsed.sections.lua || []).join(""));
@@ -5987,6 +6231,7 @@ ${moduleCode}end
         }
         return matches.join("");
       }
+      __name(findLua, "findLua");
       module.exports = Object.freeze({ findLua });
     }
   });
@@ -6011,6 +6256,7 @@ ${moduleCode}end
         if (!name) throw new TypeError("Each input file must provide a name.");
         return name;
       }
+      __name(fileName, "fileName");
       async function fileBytes(file) {
         if (file instanceof Uint8Array) return file;
         if (file?.bytes !== void 0) return file.bytes instanceof Uint8Array ? file.bytes : new Uint8Array(file.bytes);
@@ -6021,11 +6267,13 @@ ${moduleCode}end
         if (typeof file?.arrayBuffer === "function") return new Uint8Array(await file.arrayBuffer());
         throw new TypeError(`${fileName(file)} does not provide bytes.`);
       }
+      __name(fileBytes, "fileBytes");
       function requireCartridgeName(name) {
         if (!CART_EXTENSIONS.some((extension) => name.endsWith(extension))) {
           throw new Error("filename must end in .p8 or .p8.png");
         }
       }
+      __name(requireCartridgeName, "requireCartridgeName");
       async function loadCartridge(file) {
         const name = fileName(file);
         requireCartridgeName(name);
@@ -6033,6 +6281,7 @@ ${moduleCode}end
         const cartridge = await fromBytes(bytes, name);
         return { name, bytes, cartridge, p8: cartridge.format === "p8" ? cartridge : p8FromCartridge(cartridge) };
       }
+      __name(loadCartridge, "loadCartridge");
       function friendly(value) {
         if (value === null || value === void 0) return "";
         if (value instanceof Uint8Array || value instanceof ArrayBuffer || ArrayBuffer.isView(value)) {
@@ -6040,13 +6289,16 @@ ${moduleCode}end
         }
         return String(value).replace(/[\x80-\xff]/g, "_");
       }
+      __name(friendly, "friendly");
       function csvField(value) {
         const text = friendly(value);
         return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
       }
+      __name(csvField, "csvField");
       function basename(name) {
         return String(name).split(/[\\/]/).pop();
       }
+      __name(basename, "basename");
       function statsCsv(rows) {
         const values = [[
           "Filename",
@@ -6071,6 +6323,7 @@ ${moduleCode}end
         return `${values.map((row) => row.map(csvField).join(",")).join("\r\n")}\r
 `;
       }
+      __name(statsCsv, "statsCsv");
       async function mapCartridges(command, request, action) {
         const results = [], errors = [];
         const cartridges = request.cartridges || [];
@@ -6092,16 +6345,20 @@ ${moduleCode}end
         }
         return { ok: errors.length === 0, implemented: true, command, results, errors };
       }
+      __name(mapCartridges, "mapCartridges");
       function luaSource(p8) {
         return (p8.sections.lua || []).join("");
       }
+      __name(luaSource, "luaSource");
       function formatRawLua(source, showLineNumbers) {
         return String(source).split("\n").map((line, index) => `${showLineNumbers ? `${index}: ` : ""}${friendly(latin1Bytes(line))}
 `).join("") + "\n";
       }
+      __name(formatRawLua, "formatRawLua");
       function outputName(name, suffix = "_fmt") {
         return name.endsWith(".p8.png") ? `${name.slice(0, -7)}${suffix}.p8.png` : `${name.slice(0, -3)}${suffix}.p8`;
       }
+      __name(outputName, "outputName");
       function normalizeKeepNames(request) {
         if (Array.isArray(request.keepNames)) return request.keepNames;
         if (request.keepNamesBytes !== void 0) {
@@ -6111,6 +6368,7 @@ ${moduleCode}end
         if (contents === void 0) return [];
         return String(contents).split("\n").map((line) => line.replace(/^[\t\n\v\f\r ]+|[\t\n\v\f\r ]+$/g, "")).filter((line) => line && !line.startsWith("#"));
       }
+      __name(normalizeKeepNames, "normalizeKeepNames");
       function createBrowserCommands() {
         async function stats(request = {}) {
           const response = await mapCartridges("stats", request, async ({ name, p8 }) => {
@@ -6129,24 +6387,30 @@ ${moduleCode}end
           if (request.csv) response.csv = statsCsv(response.results);
           return response;
         }
+        __name(stats, "stats");
         function listing(command, request, render) {
           return mapCartridges(command, request, async ({ name, p8 }) => ({ name, text: render(p8, name) }));
         }
+        __name(listing, "listing");
         function listlua(request = {}) {
           return listing("listlua", request, (p8) => listLua(p8, {
             pure: Boolean(request.pureLua),
             showLineNumbers: Boolean(request.showLineNumbers)
           }));
         }
+        __name(listlua, "listlua");
         function listrawlua(request = {}) {
           return listing("listrawlua", request, (p8) => formatRawLua(luaSource(p8), request.showLineNumbers));
         }
+        __name(listrawlua, "listrawlua");
         function listtokens(request = {}) {
           return listing("listtokens", request, (p8) => listTokens(p8));
         }
+        __name(listtokens, "listtokens");
         function printast(request = {}) {
-          return listing("printast", request, (p8) => printAst(luaSource(p8)));
+          return listing("printast", request, (p8) => printAst(base.encodeP8scii(luaSource(p8))));
         }
+        __name(printast, "printast");
         async function luafind(request = {}) {
           if (!request.pattern) return {
             ok: false,
@@ -6176,6 +6440,7 @@ ${moduleCode}end
             text: findLua(p8, expression, { filename: name, listFiles: Boolean(request.listFiles) })
           }));
         }
+        __name(luafind, "luafind");
         function transform(command, request = {}) {
           if (command === "luafmt" && request.indentwidth !== void 0 && !Number.isInteger(request.indentwidth)) {
             return Promise.resolve({ ok: false, implemented: true, command, results: [], errors: [{
@@ -6205,6 +6470,7 @@ ${moduleCode}end
             };
           });
         }
+        __name(transform, "transform");
         async function sourceFor(domain, file, modules, luaPath) {
           const name = fileName(file), bytes = await fileBytes(file);
           if (domain === "lua" && name.endsWith(".lua")) {
@@ -6215,6 +6481,7 @@ ${moduleCode}end
           const loaded = await loadCartridge(file);
           return { format: "p8", data: writeP8(loaded.p8) };
         }
+        __name(sourceFor, "sourceFor");
         async function build(request = {}) {
           try {
             if (!request.outputName) throw Object.assign(
@@ -6261,6 +6528,7 @@ ${moduleCode}end
             };
           }
         }
+        __name(build, "build");
         return Object.freeze({
           stats,
           listlua,
@@ -6268,12 +6536,13 @@ ${moduleCode}end
           listtokens,
           printast,
           luafind,
-          writep8: (request) => transform("writep8", request),
-          luamin: (request) => transform("luamin", request),
-          luafmt: (request) => transform("luafmt", request),
+          writep8: /* @__PURE__ */ __name((request) => transform("writep8", request), "writep8"),
+          luamin: /* @__PURE__ */ __name((request) => transform("luamin", request), "luamin"),
+          luafmt: /* @__PURE__ */ __name((request) => transform("luafmt", request), "luafmt"),
           build
         });
       }
+      __name(createBrowserCommands, "createBrowserCommands");
       module.exports = Object.freeze({ createBrowserCommands, statsCsv });
     }
   });

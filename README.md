@@ -37,8 +37,11 @@ The browser interface uses the engine's command API with the same command names,
 
 ## Implementation status
 
+- [x] Preserve P8SCII glyphs in AST parsing and support integer division and PICO-8 shifts; verify local cartridges against the CLI and retain token class names in the browser bundle.
 - [x] Expose each of the ten CLI commands through the browser command API.
 - [x] Map CLI command options, source files, and output naming into browser controls.
+- [x] Open a single file viewer from the square eye icon above each file’s remove icon (on hover, keyboard focus, or touch). Cartridges offer Lua, raw Lua, tokens, AST, listing options, and Lua downloads; Lua and text support files show their contents. Viewing a file preserves the batch selection.
+- [x] Explain viewer controls on hover and keyboard focus, separate listing options, and copy or save the displayed source from its share menu.
 - [x] Display inspection and search output; download command-generated cartridge, Lua, and CSV results.
 - [x] Cache calculations in memory using exact file contents and all request options, with per-cartridge Stats reuse, bounded retention, and invalidation when the engine adapter changes. Failed calculations are retried.
 - [x] Show independent section loading states and ignore outdated inspection results after selection changes. Engine processing runs on the main thread; loading indicators do not make computation nonblocking.

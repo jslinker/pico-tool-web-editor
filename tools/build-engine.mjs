@@ -22,6 +22,8 @@ if (!entry) {
 await build({
   entryPoints: [entry],
   bundle: true,
+  // AST token output includes constructor names; retain CLI-compatible names.
+  keepNames: true,
   outfile: output,
   format: "iife",
   globalName: "PicotoolJS",

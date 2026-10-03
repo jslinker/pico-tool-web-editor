@@ -39,7 +39,9 @@ function harness(overrides = {}, useCache = false) {
   const elements = new Map();
   const get = (id) => { if (!elements.has(id)) elements.set(id, new Element(id)); return elements.get(id); };
   const radios = new Map([["transform", "luamin"], ["lua-view", "normalized"], ["structure", "tokens"], ["build-lua", "unchanged"]]);
-  const calls = []; const downloads = []; const changeHandlers = new Map();
+  const calls = []; const downloads = []; const copied = [];
+  const clipboard = { async writeText(text) { copied.push(text); } };
+  const changeHandlers = new Map();
   const success = (command, results = []) => ({ ok: true, command, results, errors: [], csv: "Filename\r\n" });
   const cli = Object.fromEntries(["stats", "listlua", "listrawlua", "listtokens", "printast", "luafind", "writep8", "luamin", "luafmt", "build"].map((command) => [command, async (request) => {
     calls.push([command, request]);
@@ -55,6 +57,8 @@ function harness(overrides = {}, useCache = false) {
     getElementById: get,
     querySelector: (selector) => selector === ".workspace" ? get("workspace") : (() => {
       const match = /input\[name="([^"]+)"\]:checked/.exec(selector);
+      const choice = /input\[name="([^"]+)"\]\[value="([^"]+)"\]/.exec(selector);
+      if (choice) return { set checked(value) { if (value) radios.set(choice[1], choice[2]); } };
       return match ? { value: radios.get(match[1]) } : get(selector);
     })(),
     querySelectorAll: (selector) => {
@@ -65,10 +69,10 @@ function harness(overrides = {}, useCache = false) {
     },
     createElement: () => { const element = new Element("anchor"); element.click = () => downloads.push([element.download, element.href]); return element; },
   };
-  const context = { window: { PicoToolWeb: useCache ? require("../app.js").createPicoToolWebApi({ engineAdapter: cli }) : { cli } }, document, Blob, URL: { createObjectURL: () => "blob:test", revokeObjectURL() {} },
+  const context = { window: { PicoToolWeb: useCache ? require("../app.js").createPicoToolWebApi({ engineAdapter: cli }) : { cli } }, document, navigator: { clipboard }, Blob, URL: { createObjectURL: () => "blob:test", revokeObjectURL() {} },
     setTimeout() {}, console, Uint8Array, TextEncoder, TextDecoder };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "ui.js"), "utf8"), context);
-  return { get, calls, downloads, radios, change: (key) => changeHandlers.get(key)?.({ target: get(key) }) };
+  return { get, calls, downloads, copied, clipboard, radios, change: (key) => changeHandlers.get(key)?.({ target: get(key) }) };
 }
 
 test("UI maps a batch format command to CLI options and keeps input bytes unchanged", async () => {
@@ -158,7 +162,7 @@ test("inspection forwards raw listing flags and CSV action invokes stats with cs
   const luaExport = h.calls.filter(([command]) => command === "listlua").at(-1)[1];
   assert.equal(luaExport.showLineNumbers, true);
   assert.equal(luaExport.pureLua, true);
-  assert.deepEqual(h.downloads.map(([name]) => name), ["picotool-stats.csv", "game.lua.txt"]);
+  assert.deepEqual(h.downloads.map(([name]) => name), ["picotool-stats.csv", "game.lua"]);
 });
 
 test("bundled engine resolves nested build modules and reports its token-optimization error", async () => {
@@ -216,7 +220,7 @@ test("mixed files route to cartridges, Lua modules and name lists; removal clear
   assert.equal(h.get("build-name-list").value, "");
   h.get("file-list").children[0].children[1].handlers.click();
   assert.equal(h.get("active-file-name").textContent, "No cartridge selected");
-  assert.equal(h.get("lua-preview").textContent, "");
+  assert.equal(h.get("lua-preview").textContent, "Select a cartridge to view this listing.");
   await input.handlers.change({ target: input });
   assert.equal(h.get("file-list").children.length, 4);
 });
@@ -349,4 +353,82 @@ test("selection changes reuse per-file stats and changed reimports recalculate o
   assert.equal(requests[2][1].cartridges[0].name, "one.p8");
   assert.equal(requests[2][1].cartridges[0].bytes[0], 9);
   assert.equal(h.get("stats-rows").children.length, 2);
+});
+
+test("file View opens one modal without changing selection and all views target that file", async () => {
+  const h = harness();
+  const input = h.get("file-input");
+  input.files = [bytesFile("one.p8", [1]), bytesFile("two.p8.png", [2])];
+  await input.handlers.change({ target: input });
+  h.get("file-list").children[0].children[0].handlers.click({});
+  const view = h.get("file-list").children[1].children[2];
+  assert.equal(view["aria-label"], "View two.p8.png");
+  view.handlers.click();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(h.get("lua-dialog").open, true);
+  assert.equal(h.get("lua-filename").textContent, "two.p8.png");
+  assert.equal(h.get("active-file-name").textContent, "one.p8");
+  assert.equal(h.get("stats-rows").children.length, 1);
+  assert.equal(h.get("lua-preview").textContent, "listlua");
+  assert.equal(h.get("structure-preview").textContent, "listtokens");
+  h.radios.set("lua-view", "raw");
+  h.radios.set("structure", "ast");
+  h.change("lua-view");
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(h.get("lua-preview").textContent, "listrawlua");
+  assert.equal(h.get("structure-preview").textContent, "printast");
+  for (const command of ["listlua", "listrawlua", "listtokens", "printast"]) {
+    assert.equal(h.calls.filter(([name]) => name === command).at(-1)[1].cartridges[0].name, "two.p8.png");
+  }
+  await h.get("download-lua").click();
+  assert.equal(h.downloads.at(-1)[0], "two.lua");
+  await h.get("close-lua-dialog").click();
+  assert.equal(h.get("lua-dialog").open, false);
+});
+
+test("support files show text in the same viewer without cartridge operations", async () => {
+  const h = harness();
+  const input = h.get("file-input");
+  input.files = [bytesFile("main.lua", [112, 114, 105, 110, 116, 40, 41]), bytesFile("keep.txt", [97])];
+  await input.handlers.change({ target: input });
+  const before = h.calls.length;
+  for (const [index, expected] of [[0, "print()"], [1, "a"]]) {
+    h.get("file-list").children[index].children[2].handlers.click();
+    assert.equal(h.get("lua-dialog").open, true);
+    assert.equal(h.get("lua-preview").textContent, expected);
+    assert.equal(h.get("structure-section").hidden, true);
+    assert.equal(h.get("lua-options").hidden, true);
+    await h.get("close-lua-dialog").click();
+  }
+  assert.equal(h.calls.length, before);
+});
+
+test("share copies the displayed listing and reports clipboard failure", async () => {
+  const h = harness();
+  const input = h.get("file-input"); input.files = [bytesFile("game.p8", [1])];
+  await input.handlers.change({ target: input });
+  h.get("file-list").children[0].children[2].handlers.click();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(h.get("copy-lua").disabled, false);
+  h.get("listing-share").open = true;
+  await h.get("copy-lua").click();
+  assert.deepEqual(h.copied, [h.get("lua-preview").textContent]);
+  assert.equal(h.get("listing-share").open, false);
+  assert.match(h.get("listing-share-status").textContent, /Copied/);
+  h.clipboard.writeText = async () => { throw new Error("Permission denied"); };
+  await h.get("copy-lua").click();
+  assert.match(h.get("listing-share-status").textContent, /Could not copy/);
+  await h.get("download-lua").click();
+  assert.equal(h.downloads.at(-1)[0], "game.lua");
+  assert.match(h.get("listing-share-status").textContent, /Download started/);
+});
+
+test("listing downloads use a nonempty fallback for unnamed cartridges", async () => {
+  const h = harness();
+  const input = h.get("file-input"); input.files = [bytesFile(".p8", [1])];
+  await input.handlers.change({ target: input });
+  h.get("file-list").children[0].children[2].handlers.click();
+  await new Promise((resolve) => setImmediate(resolve));
+  await h.get("download-lua").click();
+  assert.equal(h.downloads.at(-1)[0], "cartridge.lua");
 });

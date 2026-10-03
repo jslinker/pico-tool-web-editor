@@ -7,6 +7,8 @@
   };
 
   const byId = (id) => document.getElementById(id);
+  let viewedFile = null;
+  const inspectionFile = () => byId("lua-dialog").open && viewedFile ? viewedFile : current()?.working;
   const current = () => state.cartridges[state.active] || null;
   const selectedCartridges = () => workingFiles().filter((file) => state.selected.has(file.name));
   const workingFiles = () => state.cartridges.map((item) => item.working);
@@ -23,12 +25,21 @@
     target.style.color = isError ? "var(--pink)" : "";
   }
 
+  function listingFilename(file) {
+    const basename = String(file?.name || "").split(/[\\/]/).pop()
+      .replace(/[<>:"|?*\x00-\x1f]/g, "-").trim();
+    const stem = basename.replace(/(?:\.p8(?:\.png)?|\.lua|\.txt)$/i, "")
+      .replace(/^[. ]+|[. ]+$/g, "") || "cartridge";
+    if (/\.(?:lua|txt)$/i.test(basename)) return `${stem}${/\.lua$/i.test(basename) ? ".lua" : ".txt"}`;
+    return `${stem}.lua`;
+  }
+
   function download(name, data, type = "application/octet-stream") {
     const blob = data instanceof Blob ? data : new Blob([data], { type });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = name;
+    anchor.download = String(name || "").trim() || "picotool-export.txt";
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -79,7 +90,8 @@
       });
       const remove = document.createElement("button");
       remove.type = "button";
-      remove.className = "file-remove";
+      remove.className = "file-icon file-remove";
+      remove.title = `Remove ${file.name}`;
       remove.textContent = "×";
       remove.setAttribute("aria-label", `Remove ${file.name}`);
       remove.addEventListener("click", () => {
@@ -94,7 +106,21 @@
         const next = list.querySelectorAll(".file-remove")[Math.min(entryIndex, list.children.length - 1)];
         (next || byId("add-files")).focus();
       });
-      row.append(button, remove);
+      const view = document.createElement("button");
+      view.type = "button";
+      view.className = "file-icon file-view";
+      view.title = `View ${file.name}`;
+      view.setAttribute("aria-label", `View ${file.name}`);
+      view.setAttribute("aria-haspopup", "dialog");
+      view.setAttribute("aria-controls", "lua-dialog");
+      view.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
+      view.addEventListener("click", () => {
+        viewedFile = file;
+        byId("lua-filename").textContent = file.name;
+        byId("lua-dialog").showModal();
+        refreshInspection().catch((error) => announce(error.message, true));
+      });
+      row.append(button, remove, view);
       list.append(row);
     });
     const active = current();
@@ -154,17 +180,40 @@
   let inspectionRevision = 0;
   async function refreshInspection() {
     const revision = ++inspectionRevision;
-    const active = current();
+    byId("copy-lua").disabled = true;
+    byId("download-lua").disabled = true;
+    byId("listing-share-status").textContent = "";
+    byId("listing-share").open = false;
+    const file = inspectionFile();
+    const active = file ? { working: file } : null;
+    const isText = file && !/\.p8(?:\.png)?$/.test(file.name);
+    byId("lua-dialog-title").textContent = "File viewer";
+    byId("lua-options").hidden = Boolean(isText);
+    byId("structure-section").hidden = Boolean(isText);
+    byId("lua-viewer-heading").textContent = isText ? "File contents" : "Lua viewer";
+    if (isText) {
+      byId("lua-preview").textContent = new TextDecoder().decode(file.bytes);
+      byId("copy-lua").disabled = false;
+      byId("download-lua").disabled = false;
+      byId("structure-preview").textContent = "";
+      setBusy("lua", false);
+      setBusy("structure", false);
+      return;
+    }
     const viewCommand = selectedValue("lua-view") === "raw" ? "listrawlua" : "listlua";
     const structureCommand = selectedValue("structure") === "ast" ? "printast" : "listtokens";
     async function refresh(section, target, command, options = {}) {
       byId(target).textContent = "";
       setBusy(section, Boolean(active));
-      if (!active) return;
+      if (!active) { byId(target).textContent = "Select a cartridge to view this listing."; return; }
       try {
         const response = await api.cli[command]({ cartridges: [active.working], ...options });
         if (revision !== inspectionRevision) return;
         byId(target).textContent = response.ok ? response.results[0].text : errorText(response);
+        if (section === "lua") {
+          byId("copy-lua").disabled = !response.ok;
+          byId("download-lua").disabled = !response.ok;
+        }
       } catch (error) {
         if (revision === inspectionRevision) byId(target).textContent = error.message;
       } finally {
@@ -363,6 +412,9 @@
     }
   }
 
+  byId("close-lua-dialog").addEventListener("click", () => byId("lua-dialog").close());
+  byId("lua-dialog").addEventListener("close", () => { viewedFile = null; });
+
   byId("add-files").addEventListener("click", () => byId("file-input").click());
   byId("file-help-button").addEventListener("click", () => byId("file-help").showModal());
   byId("close-file-help").addEventListener("click", () => byId("file-help").close());
@@ -414,12 +466,35 @@
   byId("run-search").addEventListener("click", runWithLoading("search", runSearch));
   byId("run-transform").addEventListener("click", runWithLoading("transform", runTransform));
   byId("download-csv").addEventListener("click", async () => { const response = await statsFor(); if (response.results.length) download("picotool-stats.csv", response.csv, "text/csv"); if (response.errors.length) announce(errorText(response), true); });
-  for (const id of ["download-lua", "export-lua"]) byId(id).addEventListener("click", async () => {
-    const active = current(); if (!active) return;
+  byId("copy-lua").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(byId("lua-preview").textContent);
+      byId("listing-share-status").textContent = "Copied to clipboard.";
+    } catch (error) {
+      byId("listing-share-status").textContent = "Could not copy. Select the text to copy manually, or save to disk.";
+    } finally { byId("listing-share").open = false; }
+  });
+  byId("download-lua").addEventListener("click", () => {
+    const file = inspectionFile(); if (!file) return;
+    download(listingFilename(file), byId("lua-preview").textContent, "text/plain");
+    byId("listing-share").open = false;
+    byId("listing-share-status").textContent = "Download started.";
+  });
+  byId("listing-share").addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && byId("listing-share").open) {
+      event.preventDefault();
+      event.stopPropagation();
+      byId("listing-share").open = false;
+      byId("listing-share").querySelector("summary").focus();
+    }
+  });
+  byId("export-lua").addEventListener("click", async () => {
+    const file = inspectionFile(); if (!file) return;
+    const active = { working: file };
     const command = selectedValue("lua-view") === "raw" ? "listrawlua" : "listlua";
     const response = await api.cli[command]({ cartridges: [active.working], showLineNumbers: byId("lua-line-numbers").checked,
       pureLua: command === "listlua" && byId("lua-pure").checked });
-    if (response.ok) download(active.working.name.replace(/\.p8(?:\.png)?$/i, ".lua.txt"), response.results[0].text, "text/plain");
+    if (response.ok) download(listingFilename(active.working), response.results[0].text, "text/plain");
   });
   byId("export-stats").addEventListener("click", () => byId("download-csv").click());
   byId("download-all").addEventListener("click", () => {

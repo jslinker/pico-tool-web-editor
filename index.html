@@ -172,12 +172,16 @@
     .file-toolbar { display: flex; align-items: center; gap: 8px; }
     .file-toolbar .file-button { flex: 1; }
     .file-help-button { flex: 0 0 32px; padding: 0; border-radius: 50%; min-height: 32px; }
-    .file-row { display: flex; align-items: center; gap: 2px; border-radius: 9px; }
-    .file-row .file-item { flex: 1; min-width: 0; text-align: left; }
-    .file-remove { opacity: 0; flex: 0 0 26px; min-height: 28px; padding: 0; color: var(--muted); background: transparent; }
-    .file-row:hover .file-remove, .file-row:focus-within .file-remove { opacity: 1; }
+    .file-row { display: grid; grid-template-columns: minmax(0, 1fr) 28px; grid-template-rows: 28px 28px; align-items: stretch; gap: 2px; border-radius: 9px; }
+    .file-row .file-item { grid-row: 1 / 3; min-width: 0; text-align: left; }
+    .file-icon { opacity: 0; width: 28px; height: 28px; min-height: 28px; aspect-ratio: 1; padding: 0; display: grid; place-items: center; color: var(--muted); background: transparent; }
+    .file-view { grid-column: 2; grid-row: 1; }
+    .file-remove { grid-column: 2; grid-row: 2; font-size: 18px; }
+    .file-icon svg { width: 16px; height: 16px; }
+    .file-row:hover .file-icon, .file-row:focus-within .file-icon { opacity: 1; }
+    .file-view:hover { color: var(--cyan); }
     .file-remove:hover { color: var(--pink); }
-    @media (hover: none) { .file-remove { opacity: 1; } }
+    @media (hover: none) { .file-icon { opacity: 1; } }
     .file-list { display: grid; gap: 8px; }
     .file-item {
       position: relative;
@@ -270,6 +274,22 @@
     .field-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
     .field-row button { color: var(--cyan); }
 
+    .listing-settings { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin: 8px 0; padding-top: 8px; border-top: 1px solid var(--line); }
+    .explained { position: relative; }
+    .explained:hover, .explained:focus-within { color: var(--ink); }
+    .control-tip { display: none; position: absolute; top: calc(100% + 8px); left: 0; width: min(280px, 65vw); padding: 10px 12px; border: 1px solid var(--line-bright); border-radius: 7px; color: var(--ink); background: #20202d; font: 12px/1.5 system-ui, sans-serif; z-index: 30; box-shadow: 0 8px 24px #0008; pointer-events: none; }
+    .explained:hover .control-tip, .explained:focus-within .control-tip { display: block; }
+    .listing-editor { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; background: #0d0d14; }
+    .listing-toolbar { display: flex; align-items: center; gap: 10px; padding: 6px; border-bottom: 1px solid var(--line); }
+    .listing-share { position: relative; }
+    .listing-share summary { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 5px; cursor: pointer; color: var(--muted); list-style: none; }
+    .listing-share summary::-webkit-details-marker { display: none; }
+    .listing-share summary:hover, .listing-share[open] summary { color: var(--cyan); background: var(--panel-raised); }
+    .listing-share summary svg { width: 16px; height: 16px; }
+    .share-options { position: absolute; left: 0; top: calc(100% + 5px); display: grid; gap: 4px; width: 180px; padding: 6px; border: 1px solid var(--line-bright); border-radius: 7px; background: var(--panel); z-index: 20; box-shadow: 0 8px 24px #0008; }
+    .share-options button { text-align: left; font-size: 11px; }
+    #listing-share-status { color: var(--muted); font: 11px/1.4 system-ui, sans-serif; }
+    .listing-editor .code-preview { margin: 0; border: 0; border-radius: 0 0 8px 8px; }
     .code-preview {
       min-height: 178px;
       margin-top: 16px;
@@ -367,6 +387,15 @@
       background: #15151f;
       box-shadow: 0 30px 90px rgba(0,0,0,.7);
     }
+    .listing-dialog { width: min(1100px, calc(100vw - 36px)); max-height: calc(100dvh - 36px); }
+    .listing-dialog .card { padding: 12px 16px; border: 0; background: transparent; }
+    .listing-dialog .card-title { margin-bottom: 8px; }
+    .listing-dialog .help-head { padding: 10px 16px; }
+    .listing-dialog input[type="checkbox"], .listing-dialog input[type="radio"] { min-height: 0; width: 13px; height: 13px; margin: 0; }
+    .listing-dialog .check, .listing-dialog .radio { min-height: 20px; }
+    .listing-dialog .segmented label { padding-top: 4px; padding-bottom: 4px; }
+    .listing-dialog pre { max-height: 60dvh; overflow: auto; }
+    .listing-filename { margin: 8px 16px 0; color: var(--muted); overflow-wrap: anywhere; }
     dialog::backdrop { background: rgba(3,3,7,.7); backdrop-filter: blur(6px); }
     .help-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--line); }
     .help-head h2 { font-size: 16px; }
@@ -454,19 +483,6 @@
               </div>
             </article>
 
-            <article class="card span-8" id="lua-section" data-cli-commands="listlua listrawlua">
-              <p class="section-loading" role="status">Processing…</p>
-              <div class="card-title"><h3>Lua viewer</h3><span class="command-tag">listlua / listrawlua</span></div>
-              <div class="options">
-                <label class="radio"><input type="radio" name="lua-view" value="normalized" checked> Normalized</label>
-                <label class="radio"><input type="radio" name="lua-view" value="raw"> Raw source</label>
-                <label class="check"><input id="lua-line-numbers" type="checkbox"> Line numbers</label>
-                <label class="check"><input id="lua-pure" type="checkbox"> Convert shorthand to pure Lua</label>
-                <button class="secondary-button" id="download-lua" type="button">Save Lua listing</button>
-              </div>
-              <pre class="code-preview" id="lua-preview" aria-label="Lua source preview">Select a cartridge to view its Lua.</pre>
-            </article>
-
             <article class="card span-5" id="search-section" data-cli-commands="luafind">
               <p class="section-loading" role="status">Processing…</p>
               <div class="card-title"><h3>Find in cartridges</h3><span class="command-tag">luafind</span></div>
@@ -479,16 +495,6 @@
                 <span id="search-status" style="color:var(--faint);font-size:9px">JavaScript regular expressions</span>
               </div>
               <div class="result-list" id="search-results"></div>
-            </article>
-
-            <article class="card span-7" id="structure-section" data-cli-commands="listtokens printast">
-              <p class="section-loading" role="status">Processing…</p>
-              <div class="card-title"><h3>Code structure</h3><span class="command-tag">listtokens / printast</span></div>
-              <div class="segmented" role="group" aria-label="Code structure view">
-                <label><input type="radio" name="structure" value="tokens" checked>Tokens</label>
-                <label><input type="radio" name="structure" value="ast">AST tree</label>
-              </div>
-              <pre class="tree" id="structure-preview" style="margin-top:14px">Select a cartridge to inspect code structure.</pre>
             </article>
           </div>
         </section>
@@ -653,6 +659,52 @@
     <span id="workspace-status">0 cartridges · processing stays on this device</span>
     <nav aria-label="Project links"><a href="README.md">Project notes</a><a href="https://github.com/jslinker/picotool-js">Engine</a><a href="LICENSE">MIT license</a></nav>
   </footer>
+
+  <dialog class="listing-dialog" id="lua-dialog" aria-labelledby="lua-dialog-title">
+    <div class="help-head">
+      <h2 id="lua-dialog-title">File viewer</h2>
+      <button id="close-lua-dialog" type="button" autofocus>Close</button>
+    </div>
+    <p class="listing-filename" id="lua-filename"></p>
+    <article class="card span-8" id="lua-section" data-cli-commands="listlua listrawlua">
+      <p class="section-loading" role="status">Processing…</p>
+      <div class="card-title"><h3 id="lua-viewer-heading">Lua viewer</h3><span class="command-tag">listlua / listrawlua</span></div>
+      <div id="lua-options">
+        <div class="options" role="group" aria-label="Lua source view">
+          <label class="radio explained"><input type="radio" name="lua-view" value="normalized" checked aria-describedby="pure-view-tip"> Pure Lua<span class="control-tip" role="tooltip" id="pure-view-tip">Lists code through picotool’s tokenizer, standardizing some string escapes. Enable shorthand conversion below to expand PICO-8 syntax.</span></label>
+          <label class="radio explained"><input type="radio" name="lua-view" value="raw" aria-describedby="raw-view-tip"> Raw source<span class="control-tip" role="tooltip" id="raw-view-tip">Extracts Lua without tokenizing it. The engine still applies its listing character and newline handling.</span></label>
+        </div>
+        <div class="listing-settings" role="group" aria-label="Listing options">
+          <label class="check explained"><input id="lua-pure" type="checkbox" aria-describedby="shorthand-tip"> Convert PICO-8 shorthand<span class="control-tip" role="tooltip" id="shorthand-tip">Expands supported shortcuts, such as x += 1 into x = x + 1. Available with Pure Lua; does not replace PICO-8 APIs.</span></label>
+          <label class="check explained"><input id="lua-line-numbers" type="checkbox" aria-describedby="line-numbers-tip"> Line numbers<span class="control-tip" role="tooltip" id="line-numbers-tip">Prefixes lines with numbers starting at 0. Numbers are included when you copy or save the listing.</span></label>
+        </div>
+      </div>
+      <div class="listing-editor">
+        <div class="listing-toolbar">
+          <details class="listing-share" id="listing-share">
+            <summary aria-label="Share Lua listing" title="Copy or save this listing">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 15V3m-4 4 4-4 4 4M5 12v8h14v-8"/></svg>
+            </summary>
+            <div class="share-options">
+              <button id="copy-lua" type="button" disabled>Copy to clipboard</button>
+              <button id="download-lua" type="button" disabled>Save to disk</button>
+            </div>
+          </details>
+          <span id="listing-share-status" role="status" aria-live="polite"></span>
+        </div>
+        <pre class="code-preview" id="lua-preview" aria-label="Lua source preview">Select a cartridge to view its Lua.</pre>
+      </div>
+    </article>
+    <article class="card span-7" id="structure-section" data-cli-commands="listtokens printast">
+      <p class="section-loading" role="status">Processing…</p>
+      <div class="card-title"><h3>Code structure</h3><span class="command-tag">listtokens / printast</span></div>
+      <div class="segmented" role="group" aria-label="Code structure view">
+        <label class=" explained"><input type="radio" name="structure" value="tokens" checked aria-describedby="tokens-tip"> Tokens<span class="control-tip" role="tooltip" id="tokens-tip">Shows picotool’s token listing: names, values, operators, whitespace, and comments from the original code.</span></label>
+        <label class=" explained"><input type="radio" name="structure" value="ast" aria-describedby="ast-tip"> AST tree<span class="control-tip" role="tooltip" id="ast-tip">Shows picotool’s abstract syntax tree: how the original code is grouped into expressions, statements, and functions.</span></label>
+      </div>
+      <pre class="tree" id="structure-preview" style="margin-top:8px">Select a cartridge to inspect code structure.</pre>
+    </article>
+  </dialog>
 
   <dialog id="file-help" aria-labelledby="file-help-title">
     <div class="help-head">
