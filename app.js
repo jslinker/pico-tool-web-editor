@@ -46,6 +46,80 @@
     const settings = options || {};
     let engineAdapter = settings.engineAdapter || null;
 
+    // Exact content keys avoid identity-based hits when callers mutate input bytes.
+    // Bound retained keys/results to 32 MiB and 64 entries, including pending work.
+    const cache = new Map();
+    const maxCacheBytes = 32 * 1024 * 1024;
+    let cacheBytes = 0;
+    function contentKey(value, seen = new Set()) {
+      if (value === null) return "null";
+      if (value === undefined) return "undefined";
+      if (["string", "boolean", "number"].includes(typeof value)) {
+        return `${typeof value}:${typeof value === "number" ? (Object.is(value, -0) ? "-0" : String(value)) : JSON.stringify(value)}`;
+      }
+      if (typeof value !== "object" || seen.has(value)) throw new TypeError("Uncacheable request");
+      if (value instanceof ArrayBuffer || ArrayBuffer.isView(value)) {
+        const bytes = value instanceof ArrayBuffer ? new Uint8Array(value)
+          : new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+        let text = "";
+        for (let i = 0; i < bytes.length; i += 8192) text += String.fromCharCode(...bytes.subarray(i, i + 8192));
+        return `${Object.prototype.toString.call(value)}:${JSON.stringify(text)}`;
+      }
+      seen.add(value);
+      let key;
+      if (Array.isArray(value)) key = `[${Array.from(value, (item) => contentKey(item, seen)).join(",")}]`;
+      else if (Object.getPrototypeOf(value) === null || (Object.prototype.toString.call(value) === "[object Object]" && Object.getPrototypeOf(Object.getPrototypeOf(value)) === null)) {
+        key = `{${Object.keys(value).sort().map((name) => `${JSON.stringify(name)}:${contentKey(value[name], seen)}`).join(",")}}`;
+      } else throw new TypeError("Uncacheable request");
+      seen.delete(value);
+      return key;
+    }
+    function removeCached(key, entry) {
+      if (cache.get(key) !== entry) return;
+      cache.delete(key);
+      cacheBytes -= entry.size;
+    }
+    function trimCache() {
+      while (cache.size > 64 || cacheBytes > maxCacheBytes) {
+        const [key, entry] = cache.entries().next().value;
+        removeCached(key, entry);
+      }
+    }
+    async function calculate(command, request, implementation) {
+      let snapshot, key;
+      try {
+        // Special inputs (callbacks, Blob, RegExp, etc.) use the engine directly.
+        // All UI requests are plain data and byte arrays.
+        contentKey(request);
+        snapshot = structuredClone(request);
+        key = `${command}:${contentKey(snapshot)}`;
+      } catch { return implementation(request); }
+      let entry = cache.get(key);
+      if (entry) {
+        cache.delete(key);
+        cache.set(key, entry);
+      } else {
+        entry = { size: key.length * 2, promise: null };
+        entry.promise = Promise.resolve().then(() => implementation(snapshot)).then((result) => {
+          if (!result.ok) removeCached(key, entry);
+          else if (cache.get(key) === entry) {
+            try {
+              const resultSize = contentKey(result).length * 2;
+              entry.size += resultSize;
+              cacheBytes += resultSize;
+              trimCache();
+            } catch { removeCached(key, entry); }
+          }
+          return structuredClone(result);
+        }, (error) => { removeCached(key, entry); throw error; });
+        cache.set(key, entry);
+        cacheBytes += entry.size;
+        trimCache();
+      }
+      // Callers may edit results or output bytes without corrupting cached data.
+      return structuredClone(await entry.promise);
+    }
+
     function notImplementedResult(command, request) {
       return Object.freeze({
         ok: false,
@@ -64,7 +138,7 @@
       const implementation = engineAdapter && engineAdapter[command];
 
       if (typeof implementation === "function") {
-        return implementation(normalizedRequest);
+        return calculate(command, normalizedRequest, implementation);
       }
 
       return notImplementedResult(command, normalizedRequest);
@@ -191,6 +265,8 @@
       }
 
       engineAdapter = nextAdapter;
+      cache.clear();
+      cacheBytes = 0;
     }
 
     return Object.freeze({

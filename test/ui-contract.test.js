@@ -17,6 +17,10 @@ class Element {
     this.children = Array.from(this._innerHTML.matchAll(/<span(?:\s[^>]*)?>/g), () => new Element("span"));
   }
   get innerHTML() { return this._innerHTML; }
+  setAttribute(name, value) { this[name] = value; }
+  focus() { this.focused = true; }
+  showModal() { this.open = true; }
+  close() { this.open = false; }
   addEventListener(name, handler) { this.handlers[name] = handler; }
   querySelector(selector) {
     if (selector === "strong" || selector === "small") return this.childrenBySelector?.[selector] || (this.childrenBySelector ||= {})[selector] || (this.childrenBySelector[selector] = new Element(selector));
@@ -31,7 +35,7 @@ class Element {
 const bytesFile = (name, bytes) => ({ name, webkitRelativePath: name,
   async arrayBuffer() { return Uint8Array.from(bytes).buffer; }, async text() { return "keep_name\n"; } });
 
-function harness(overrides = {}) {
+function harness(overrides = {}, useCache = false) {
   const elements = new Map();
   const get = (id) => { if (!elements.has(id)) elements.set(id, new Element(id)); return elements.get(id); };
   const radios = new Map([["transform", "luamin"], ["lua-view", "normalized"], ["structure", "tokens"], ["build-lua", "unchanged"]]);
@@ -61,7 +65,7 @@ function harness(overrides = {}) {
     },
     createElement: () => { const element = new Element("anchor"); element.click = () => downloads.push([element.download, element.href]); return element; },
   };
-  const context = { window: { PicoToolWeb: { cli } }, document, Blob, URL: { createObjectURL: () => "blob:test", revokeObjectURL() {} },
+  const context = { window: { PicoToolWeb: useCache ? require("../app.js").createPicoToolWebApi({ engineAdapter: cli }) : { cli } }, document, Blob, URL: { createObjectURL: () => "blob:test", revokeObjectURL() {} },
     setTimeout() {}, console, Uint8Array, TextEncoder, TextDecoder };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "ui.js"), "utf8"), context);
   return { get, calls, downloads, radios, change: (key) => changeHandlers.get(key)?.({ target: get(key) }) };
@@ -73,7 +77,7 @@ test("UI maps a batch format command to CLI options and keeps input bytes unchan
   h.get("transform-all").checked = true;
   h.get("transform-overwrite").checked = true;
   h.get("transform-indent").value = "4";
-  const input = h.get("cartridge-input");
+  const input = h.get("file-input");
   input.files = [bytesFile("one.p8", [1, 2]), bytesFile("two.p8", [3, 4])];
   await input.handlers.change({ target: input });
 
@@ -98,7 +102,7 @@ test("UI exposes the ten CLI commands and omits non-CLI editing controls", () =>
 
 test("build uses only a selected cartridge whose name matches the output filename", async () => {
   const h = harness();
-  const input = h.get("cartridge-input");
+  const input = h.get("file-input");
   input.files = [bytesFile("unrelated.p8", [1]), bytesFile("target.p8", [2])];
   await input.handlers.change({ target: input });
   h.get("build-output-name").value = "target";
@@ -123,7 +127,7 @@ test("search displays successful matches alongside a per-cartridge CLI error", a
     h.calls.push(["luafind", request]);
     return { ok: false, results: [{ name: "good.p8", text: "good.p8:1:print(1)\n" }], errors: [{ name: "bad.p8", message: "invalid cartridge" }] };
   } });
-  const input = h.get("cartridge-input");
+  const input = h.get("file-input");
   input.files = [bytesFile("good.p8", [1]), bytesFile("bad.p8", [2])];
   await input.handlers.change({ target: input });
   h.get("search-pattern").value = "print";
@@ -135,7 +139,7 @@ test("search displays successful matches alongside a per-cartridge CLI error", a
 
 test("inspection forwards raw listing flags and CSV action invokes stats with csv enabled", async () => {
   const h = harness();
-  const input = h.get("cartridge-input"); input.files = [bytesFile("game.p8", [1, 2])];
+  const input = h.get("file-input"); input.files = [bytesFile("game.p8", [1, 2])];
   await input.handlers.change({ target: input });
   h.get("lua-line-numbers").checked = true;
   h.radios.set("lua-view", "raw");
@@ -179,4 +183,170 @@ test("bundled engine resolves nested build modules and reports its token-optimiz
   await h.get("preview-build").click();
   assert.match(h.get("build-status").textContent, /optimize_tokens not yet implemented/);
   assert.equal(h.get("export-list").children.length, 1);
+});
+
+
+test("mixed files route to cartridges, Lua modules and name lists; removal clears dependent choices", async () => {
+  const h = harness();
+  const input = h.get("file-input");
+  input.files = [bytesFile("game.p8", [1]), bytesFile("main.lua", [2]),
+    bytesFile("first.txt", [3]), bytesFile("keep.txt", [4]), bytesFile("photo.png", [5])];
+  await input.handlers.change({ target: input });
+  assert.equal(h.get("file-list").children.length, 4);
+  assert.match(h.get("workspace-status").textContent, /Not added: photo.png/);
+  assert.equal(input.value, "");
+  h.get("transform-name-list").value = "keep.txt";
+  h.get("build-name-list").value = "keep.txt";
+  h.get("build-entry-module").value = "main.lua";
+  // Removing an earlier name list must not change the selected list.
+  h.get("file-list").children[2].children[1].handlers.click();
+  assert.equal(h.get("transform-name-list").value, "keep.txt");
+  await h.get("run-transform").click();
+  assert.deepEqual(Array.from(h.calls.find(([command]) => command === "luamin")[1].keepNamesBytes), [4]);
+  h.get("build-output-name").value = "out";
+  h.get("build-output-format").value = ".p8";
+  await h.get("preview-build").click();
+  const build = h.calls.find(([command]) => command === "build")[1];
+  assert.equal(build.sources.lua.name, "main.lua");
+  assert.equal(build.modules.length, 1);
+  h.get("file-list").children[1].children[1].handlers.click();
+  assert.equal(h.get("build-entry-module").value, "");
+  h.get("file-list").children[1].children[1].handlers.click();
+  assert.equal(h.get("transform-name-list").value, "");
+  assert.equal(h.get("build-name-list").value, "");
+  h.get("file-list").children[0].children[1].handlers.click();
+  assert.equal(h.get("active-file-name").textContent, "No cartridge selected");
+  assert.equal(h.get("lua-preview").textContent, "");
+  await input.handlers.change({ target: input });
+  assert.equal(h.get("file-list").children.length, 4);
+});
+
+test("file help opens and closes, and dropping files uses the unified loader", async () => {
+  const h = harness();
+  h.get("file-help-button").click();
+  assert.equal(h.get("file-help").open, true);
+  h.get("close-file-help").click();
+  assert.equal(h.get("file-help").open, false);
+  await h.get("workspace").handlers.drop({ preventDefault() {}, dataTransfer: {
+    files: [bytesFile("cart.p8.png", [1]), bytesFile("module.lua", [2]), bytesFile("bad.zip", [3])],
+  } });
+  assert.equal(h.get("file-list").children.length, 2);
+  assert.match(h.get("workspace-status").textContent, /bad.zip/);
+});
+
+test("stats rows and CSV follow toggled file selection, excluding support files", async () => {
+  const h = harness();
+  const input = h.get("file-input");
+  input.files = [bytesFile("one.p8", [1]), bytesFile("two.p8", [2]), bytesFile("names.txt", [3])];
+  await input.handlers.change({ target: input });
+  assert.equal(h.get("stats-rows").children.length, 2);
+  assert.match(h.get("stats-summary").textContent, /one.p8, two.p8/);
+  assert.match(h.get("stats-summary").textContent, /1 selected Lua\/text file is excluded/);
+  h.get("file-list").children[0].children[0].handlers.click({ metaKey: true });
+  await h.get("download-csv").click();
+  const request = h.calls.filter(([command]) => command === "stats").at(-1)[1];
+  assert.deepEqual(Array.from(request.cartridges, (file) => file.name), ["two.p8"]);
+  assert.equal(h.get("stats-rows").children.length, 1);
+  assert.equal(h.get("stats-rows").children[0].children[0].textContent, "two.p8");
+  assert.equal(h.get("file-list").children[0].children[0]["aria-pressed"], "false");
+  h.get("file-list").children[1].children[0].handlers.click({ ctrlKey: true });
+  assert.equal(h.get("stats-rows").children.length, 0);
+  assert.equal(h.get("download-csv").disabled, true);
+});
+
+test("a stale stats request cannot replace the latest selection", async () => {
+  const pending = [];
+  const h = harness({ stats: (request) => new Promise((resolve) => pending.push({ request, resolve })) });
+  const input = h.get("file-input");
+  input.files = [bytesFile("one.p8", [1]), bytesFile("two.p8", [2])];
+  const loading = input.handlers.change({ target: input });
+  await new Promise((resolve) => setImmediate(resolve));
+  h.get("file-list").children[0].children[0].handlers.click({ metaKey: true });
+  const finish = (item) => item.resolve({ ok: true, errors: [], results: item.request.cartridges.map((file) => ({
+    name: file.name, lineCount: 1, characterCount: 1, tokenCount: 1, compressedSize: 1, version: 1,
+  })) });
+  finish(pending[2]);
+  await new Promise((resolve) => setImmediate(resolve));
+  finish(pending[0]);
+  finish(pending[1]);
+  await loading;
+  assert.equal(h.get("stats-rows").children.length, 1);
+  assert.equal(h.get("stats-rows").children[0].children[0].textContent, "two.p8");
+});
+
+
+test("single click selects one file, modifier click toggles, and Shift selects a range", async () => {
+  const h = harness();
+  const input = h.get("file-input");
+  input.files = [bytesFile("one.p8", [1]), bytesFile("two.p8", [2]), bytesFile("three.p8", [3]), bytesFile("names.txt", [4])];
+  await input.handlers.change({ target: input });
+  const select = async (index, modifiers = {}) => {
+    h.get("file-list").children[index].children[0].handlers.click(modifiers);
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+  const names = () => h.get("stats-rows").children.map((row) => row.children[0].textContent);
+  await select(0);
+  assert.deepEqual(names(), ["one.p8"]);
+  await select(0);
+  assert.deepEqual(names(), ["one.p8"]);
+  await select(2, { metaKey: true });
+  assert.deepEqual(names(), ["one.p8", "three.p8"]);
+  await select(0, { ctrlKey: true });
+  assert.deepEqual(names(), ["three.p8"]);
+  await select(0);
+  await select(2, { shiftKey: true });
+  assert.deepEqual(names(), ["one.p8", "two.p8", "three.p8"]);
+  await select(3);
+  assert.deepEqual(names(), []);
+  assert.equal(h.get("active-file-name").textContent, "No cartridge selected");
+  assert.equal(h.get("download-csv").disabled, true);
+});
+
+test("selection loading is independent per section and stale completions cannot clear it", async () => {
+  const pending = { stats: [], listlua: [], listtokens: [] };
+  const overrides = Object.fromEntries(Object.keys(pending).map((command) => [command,
+    () => new Promise((resolve) => pending[command].push(resolve))]));
+  const h = harness(overrides);
+  const input = h.get("file-input");
+  input.files = [bytesFile("one.p8", [1]), bytesFile("two.p8", [2])];
+  const initial = input.handlers.change({ target: input });
+  await new Promise((resolve) => setImmediate(resolve));
+  for (const section of ["stats", "lua", "structure"]) assert.equal(h.get(`${section}-section`)["aria-busy"], "true");
+  h.get("file-list").children[1].children[0].handlers.click({});
+  for (const command of Object.keys(pending)) pending[command][0]({ ok: true, results: [{ text: "old" }], errors: [] });
+  pending.stats[1]({ ok: true, results: [], errors: [] });
+  await initial;
+  for (const section of ["stats", "lua", "structure"]) assert.equal(h.get(`${section}-section`)["aria-busy"], "true");
+  pending.listlua[1]({ ok: true, results: [{ text: "new" }], errors: [] });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(h.get("lua-section")["aria-busy"], "false");
+  assert.equal(h.get("lua-preview").textContent, "new");
+  assert.equal(h.get("structure-section")["aria-busy"], "true");
+  pending.listtokens[1]({ ok: false, results: [], errors: [{ name: "two.p8", message: "invalid" }] });
+  pending.stats[2]({ ok: false, results: [], errors: [{ name: "two.p8", message: "invalid" }] });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(h.get("structure-section")["aria-busy"], "false");
+  assert.equal(h.get("stats-section")["aria-busy"], "false");
+  assert.match(h.get("structure-preview").textContent, /invalid/);
+  assert.match(h.get("stats-summary").textContent, /invalid/);
+});
+
+
+test("selection changes reuse per-file stats and changed reimports recalculate only that file", async () => {
+  const h = harness({}, true);
+  const input = h.get("file-input");
+  input.files = [bytesFile("one.p8", [1]), bytesFile("two.p8", [2])];
+  await input.handlers.change({ target: input });
+  assert.equal(h.calls.filter(([command]) => command === "stats").length, 2);
+  h.get("file-list").children[1].children[0].handlers.click({});
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(h.calls.filter(([command]) => command === "stats").length, 2);
+  assert.equal(h.get("stats-rows").children.length, 1);
+  input.files = [bytesFile("one.p8", [9])];
+  await input.handlers.change({ target: input });
+  const requests = h.calls.filter(([command]) => command === "stats");
+  assert.equal(requests.length, 3);
+  assert.equal(requests[2][1].cartridges[0].name, "one.p8");
+  assert.equal(requests[2][1].cartridges[0].bytes[0], 9);
+  assert.equal(h.get("stats-rows").children.length, 2);
 });

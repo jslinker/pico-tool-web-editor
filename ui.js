@@ -3,11 +3,12 @@
 
   const api = window.PicoToolWeb;
   const state = {
-    cartridges: [], active: -1, supportFiles: [], modules: [], buildSources: {}, outputs: [],
+    selected: new Set(), selectionAnchor: null, cartridges: [], active: -1, supportFiles: [], modules: [], buildSources: {}, outputs: [],
   };
 
   const byId = (id) => document.getElementById(id);
   const current = () => state.cartridges[state.active] || null;
+  const selectedCartridges = () => workingFiles().filter((file) => state.selected.has(file.name));
   const workingFiles = () => state.cartridges.map((item) => item.working);
   const selectedValue = (name) => document.querySelector(`input[name="${name}"]:checked`)?.value;
   const sizeText = (size) => size < 1024 ? `${size} B` : `${(size / 1024).toFixed(1)} KB`;
@@ -39,16 +40,62 @@
   function renderFiles() {
     const list = byId("file-list");
     list.replaceChildren();
-    if (!state.cartridges.length) list.innerHTML = '<p class="drop-note">Choose cartridges to begin.</p>';
-    state.cartridges.forEach((item, index) => {
+    const entries = [
+      ...state.cartridges.map((item) => ({ file: item.working, kind: "P8" })),
+      ...state.modules.map((file) => ({ file, kind: "LUA" })),
+      ...state.supportFiles.map((file) => ({ file, kind: "TXT" })),
+    ];
+    entries.forEach(({ file, kind }, entryIndex) => {
+      const row = document.createElement("div");
+      row.className = "file-row";
+      const index = state.cartridges.findIndex((item) => item.working === file);
       const button = document.createElement("button");
       button.type = "button";
-      button.className = `file-item${index === state.active ? " active" : ""}`;
-      button.innerHTML = '<span class="cart-icon">P8</span><span><strong></strong><small></small></span>';
-      button.querySelector("strong").textContent = item.working.name;
-      button.querySelector("small").textContent = sizeText(item.working.bytes.length);
-      button.addEventListener("click", () => { state.active = index; renderAll(); });
-      list.append(button);
+      button.setAttribute("aria-pressed", String(state.selected.has(file.name)));
+      button.className = `file-item${state.selected.has(file.name) ? " active" : ""}`;
+      button.innerHTML = '<span class="cart-icon"></span><span style="min-width:0"><strong></strong><small></small></span>';
+      button.querySelector(".cart-icon").textContent = kind;
+      button.querySelector("strong").textContent = file.name;
+      button.title = file.name;
+      button.querySelector("small").textContent = `${sizeText(file.bytes.length)} · ${kind === "P8" ? "Cartridge" : kind === "LUA" ? "Lua source" : "Name list"}`;
+      button.addEventListener("click", (event = {}) => {
+        const additive = event.metaKey || event.ctrlKey;
+        const anchor = entries.findIndex((entry) => entry.file.name === state.selectionAnchor);
+        if (event.shiftKey && anchor >= 0) {
+          if (!additive) state.selected.clear();
+          for (const entry of entries.slice(Math.min(anchor, entryIndex), Math.max(anchor, entryIndex) + 1)) {
+            state.selected.add(entry.file.name);
+          }
+        } else {
+          if (!additive) state.selected.clear();
+          if (additive && state.selected.has(file.name)) state.selected.delete(file.name);
+          else state.selected.add(file.name);
+          state.selectionAnchor = file.name;
+        }
+        state.active = kind === "P8" && state.selected.has(file.name) ? index
+          : state.cartridges.findIndex((item) => state.selected.has(item.working.name));
+        renderAll();
+        list.children[entryIndex]?.querySelector(".file-item").focus();
+      });
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "file-remove";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", `Remove ${file.name}`);
+      remove.addEventListener("click", () => {
+        const active = current();
+        state.selected.delete(file.name);
+        if (state.selectionAnchor === file.name) state.selectionAnchor = null;
+        state.cartridges = state.cartridges.filter((item) => item.working !== file);
+        state.modules = state.modules.filter((item) => item !== file);
+        state.supportFiles = state.supportFiles.filter((item) => item !== file);
+        state.active = active?.working === file ? state.cartridges.findIndex((item) => state.selected.has(item.working.name)) : state.cartridges.indexOf(active);
+        renderAll();
+        const next = list.querySelectorAll(".file-remove")[Math.min(entryIndex, list.children.length - 1)];
+        (next || byId("add-files")).focus();
+      });
+      row.append(button, remove);
+      list.append(row);
     });
     const active = current();
     byId("active-file-name").textContent = active?.working.name || "No cartridge selected";
@@ -78,14 +125,14 @@
       select.innerHTML = '<option value="">No name list</option>';
       state.supportFiles.forEach((file, index) => {
         const option = document.createElement("option");
-        option.value = String(index);
+        option.value = file.name;
         option.textContent = file.name;
         select.append(option);
       });
-      select.value = value;
+      select.value = state.supportFiles.some((file) => file.name === value) ? value : "";
     }
     byId("module-tree").textContent = state.modules.length
-      ? state.modules.map((file) => file.name).join("\n") : "No module folder selected.";
+      ? state.modules.map((file) => file.name).join("\n") : "No Lua modules added.";
     const entry = byId("build-entry-module");
     if (entry) {
       const value = entry.value;
@@ -96,56 +143,116 @@
         option.textContent = file.name;
         entry.append(option);
       });
-      entry.value = value;
+      entry.value = state.modules.some((file) => file.name === value) ? value : "";
     }
   }
 
+  function setBusy(section, busy) {
+    byId(section === "build" ? "build" : `${section}-section`).setAttribute("aria-busy", String(busy));
+  }
+
+  let inspectionRevision = 0;
   async function refreshInspection() {
+    const revision = ++inspectionRevision;
     const active = current();
-    if (!active) return;
-    const file = active.working;
     const viewCommand = selectedValue("lua-view") === "raw" ? "listrawlua" : "listlua";
     const structureCommand = selectedValue("structure") === "ast" ? "printast" : "listtokens";
-    const [stats, view, structure] = await Promise.all([
-      api.cli.stats({ cartridges: [file] }),
-      api.cli[viewCommand]({ cartridges: [file], showLineNumbers: byId("lua-line-numbers").checked,
-        pureLua: byId("lua-pure").checked }),
-      api.cli[structureCommand]({ cartridges: [file] }),
-    ]);
-    if (!stats.ok || !view.ok || !structure.ok) {
-      announce(errorText(!stats.ok ? stats : !view.ok ? view : structure), true);
-      return;
+    async function refresh(section, target, command, options = {}) {
+      byId(target).textContent = "";
+      setBusy(section, Boolean(active));
+      if (!active) return;
+      try {
+        const response = await api.cli[command]({ cartridges: [active.working], ...options });
+        if (revision !== inspectionRevision) return;
+        byId(target).textContent = response.ok ? response.results[0].text : errorText(response);
+      } catch (error) {
+        if (revision === inspectionRevision) byId(target).textContent = error.message;
+      } finally {
+        if (revision === inspectionRevision) setBusy(section, false);
+      }
     }
-    const row = stats.results[0];
-    byId("stats-summary").textContent = `${row.title || file.name}${row.byline ? ` · ${row.byline}` : ""} · code v${row.version}`;
-    const values = [row.lineCount, row.characterCount, row.tokenCount, row.compressedSize, state.cartridges.length, `v${row.version}`];
-    byId("stat-grid").querySelectorAll("strong").forEach((element, index) => { element.textContent = values[index].toLocaleString?.() || values[index]; });
-    byId("lua-preview").textContent = view.results[0].text;
-    byId("structure-preview").textContent = structure.results[0].text;
-    announce(`${state.cartridges.length} cartridge${state.cartridges.length === 1 ? "" : "s"} · processing stays on this device`);
+    await Promise.all([
+      refresh("lua", "lua-preview", viewCommand, { showLineNumbers: byId("lua-line-numbers").checked,
+        pureLua: byId("lua-pure").checked }),
+      refresh("structure", "structure-preview", structureCommand),
+    ]);
+  }
+
+  let statsRevision = 0;
+  async function refreshStats() {
+    const revision = ++statsRevision;
+    const files = selectedCartridges();
+    const skipped = state.selected.size - files.length;
+    const summary = byId("stats-summary");
+    const rows = byId("stats-rows");
+    rows.replaceChildren();
+    setBusy("stats", Boolean(files.length));
+    byId("download-csv").disabled = !files.length;
+    const scope = files.length ? `Showing ${files.length} selected cartridge${files.length === 1 ? "" : "s"}: ${files.map((file) => file.name).join(", ")}.`
+      : "Select cartridges in the file list to show statistics.";
+    const note = skipped ? ` ${skipped} selected Lua/text file${skipped === 1 ? " is" : "s are"} excluded; Stats supports cartridges only.` : "";
+    summary.textContent = scope + note;
+    if (!files.length) return;
+    summary.textContent = "Calculating… " + scope + note;
+    try {
+      // Cache each cartridge independently, so changing a multi-selection reuses
+      // calculations for files that were already inspected.
+      const responses = await Promise.all(files.map((file) => api.cli.stats({ cartridges: [file] })));
+      const response = { results: responses.flatMap((item) => item.results),
+        errors: responses.flatMap((item) => item.errors) };
+      if (revision !== statsRevision) return;
+      for (const result of response.results) {
+        const row = document.createElement("tr");
+        for (const value of [result.name, result.title || "—", result.byline || "—", result.lineCount, result.characterCount, result.tokenCount, result.compressedSize, `v${result.version}`]) {
+          const cell = document.createElement("td");
+          cell.textContent = typeof value === "number" ? value.toLocaleString() : value;
+          row.append(cell);
+        }
+        rows.append(row);
+      }
+      summary.textContent = scope + note + (response.errors.length ? ` Unable to calculate: ${errorText(response)}` : "");
+    } catch (error) {
+      if (revision === statsRevision) summary.textContent = scope + note + ` ${error.message}`;
+    } finally {
+      if (revision === statsRevision) setBusy("stats", false);
+    }
   }
 
   function renderAll() {
     renderFiles();
     renderExports();
     renderSupportFiles();
+    refreshStats();
     refreshInspection().catch((error) => announce(error.message, true));
   }
 
-  async function addCartridges(files) {
+  async function addFiles(files, nameFor = (file) => file.name) {
+    const rejected = [];
     for (const file of files) {
-      if (!file.name.endsWith(".p8") && !file.name.endsWith(".p8.png")) continue;
-      const stored = await storedFile(file);
-      const existing = state.cartridges.findIndex((item) => item.working.name === stored.name);
-      const item = { working: stored };
-      if (existing >= 0) state.cartridges[existing] = item;
-      else state.cartridges.push(item);
+      const name = nameFor(file);
+      if (!/\.(?:p8|p8\.png|lua|txt)$/.test(name)) { rejected.push(name); continue; }
+      const stored = await storedFile(file, name);
+      state.selected.add(name);
+      if (name.endsWith(".lua") || name.endsWith(".txt")) {
+        const collection = name.endsWith(".lua") ? state.modules : state.supportFiles;
+        const existing = collection.findIndex((item) => item.name === name);
+        if (existing >= 0) collection[existing] = stored;
+        else collection.push(stored);
+      } else {
+        const existing = state.cartridges.findIndex((item) => item.working.name === name);
+        const item = { working: stored };
+        if (existing >= 0) state.cartridges[existing] = item;
+        else state.cartridges.push(item);
+      }
     }
-    if (state.active < 0 && state.cartridges.length) state.active = 0;
-    renderAll();
+    if (state.active < 0) state.active = state.cartridges.findIndex((item) => state.selected.has(item.working.name));
+    renderFiles();
+    renderSupportFiles();
+    await Promise.all([refreshStats(), refreshInspection()]);
+    if (rejected.length) announce(`Not added: ${rejected.join(", ")}. Supported types: .p8, .p8.png, .lua, .txt (lowercase extensions).`, true);
   }
 
-  async function statsFor(files = workingFiles()) {
+  async function statsFor(files = selectedCartridges()) {
     return api.cli.stats({ cartridges: files, csv: true });
   }
 
@@ -176,7 +283,7 @@
     if (!active) return null;
     const command = selectedValue("transform");
     const supportIndex = byId("transform-name-list").value;
-    const keepNamesFile = supportIndex === "" ? undefined : state.supportFiles[Number(supportIndex)];
+    const keepNamesFile = supportIndex === "" ? undefined : state.supportFiles.find((file) => file.name === supportIndex);
     const cartridges = byId("transform-all").checked ? workingFiles() : [active.working];
     const options = { cartridges };
     if (command === "luamin") {
@@ -227,7 +334,7 @@
     const empty = [...byId("build-sections").querySelectorAll(".section-row[data-cleared='true']")]
       .map((row) => row.dataset.domain);
     const supportIndex = byId("build-name-list").value;
-    const keepNamesFile = supportIndex === "" ? undefined : state.supportFiles[Number(supportIndex)];
+    const keepNamesFile = supportIndex === "" ? undefined : state.supportFiles.find((file) => file.name === supportIndex);
     const selectedEntry = byId("build-entry-module").value;
     if (selectedEntry) {
       const file = state.modules.find((module) => module.name === selectedEntry);
@@ -256,27 +363,30 @@
     }
   }
 
-  byId("select-cartridges").addEventListener("click", () => byId("cartridge-input").click());
-  byId("cartridge-input").addEventListener("change", (event) => addCartridges(event.target.files));
-  document.querySelector(".workspace").addEventListener("dragover", (event) => event.preventDefault());
-  document.querySelector(".workspace").addEventListener("drop", (event) => { event.preventDefault(); addCartridges(event.dataTransfer.files); });
-  byId("add-support-file").addEventListener("click", () => byId("support-file-input").click());
-  byId("support-file-input").addEventListener("change", async (event) => {
-    for (const file of event.target.files) state.supportFiles.push({ name: file.name, text: await file.text(), bytes: new Uint8Array(await file.arrayBuffer()) });
-    renderSupportFiles();
+  byId("add-files").addEventListener("click", () => byId("file-input").click());
+  byId("file-help-button").addEventListener("click", () => byId("file-help").showModal());
+  byId("close-file-help").addEventListener("click", () => byId("file-help").close());
+  byId("file-input").addEventListener("change", async (event) => {
+    try { await addFiles([...event.target.files]); }
+    catch (error) { announce(error.message, true); }
+    finally { event.target.value = ""; }
   });
-  for (const id of ["select-module-folder", "build-select-modules"]) byId(id).addEventListener("click", () => byId("module-folder-input").click());
+  document.querySelector(".workspace").addEventListener("dragover", (event) => event.preventDefault());
+  document.querySelector(".workspace").addEventListener("drop", async (event) => {
+    event.preventDefault();
+    try { await addFiles([...event.dataTransfer.files]); }
+    catch (error) { announce(error.message, true); }
+  });
+  byId("build-select-modules").addEventListener("click", () => byId("module-folder-input").click());
   byId("module-folder-input").addEventListener("change", async (event) => {
-    const files = [...event.target.files];
-    // webkitdirectory paths include the selected folder name. Remove that
-    // common root so paths match the CLI's project-relative lua-path patterns.
-    const relativePaths = files.map((file) => file.webkitRelativePath || "");
-    const root = relativePaths.map((relativePath) => relativePath.split("/")[0]);
-    const hasDirectoryRoot = relativePaths.length > 0 && relativePaths.every((relativePath) => relativePath.includes("/"));
-    const commonRoot = hasDirectoryRoot && root.every((part) => part === root[0]) ? `${root[0]}/` : "";
-    state.modules = await Promise.all(files.map((file) => storedFile(file,
-      (file.webkitRelativePath || file.name).slice(commonRoot.length))));
-    renderSupportFiles();
+    const files = [...event.target.files].filter((file) => file.name.endsWith(".lua"));
+    try {
+      await addFiles(files, (file) => {
+        const path = file.webkitRelativePath || file.name;
+        return path.includes("/") ? path.slice(path.indexOf("/") + 1) : path;
+      });
+    } catch (error) { announce(error.message, true); }
+    finally { event.target.value = ""; }
   });
   document.querySelectorAll('input[name="lua-view"], #lua-line-numbers, #lua-pure, input[name="structure"]').forEach((input) => input.addEventListener("change", () => { updateListingOptions(); refreshInspection(); }));
   function updateListingOptions() {
@@ -290,8 +400,19 @@
     document.querySelectorAll(".format-option").forEach((element) => { element.hidden = command !== "luafmt"; });
   }
   updateTransformOptions();
-  byId("run-search").addEventListener("click", runSearch);
-  byId("run-transform").addEventListener("click", runTransform);
+  const runningSections = new Set();
+  function runWithLoading(section, action) {
+    return async () => {
+      if (runningSections.has(section)) return;
+      runningSections.add(section);
+      setBusy(section, true);
+      try { await action(); }
+      catch (error) { announce(error.message, true); }
+      finally { runningSections.delete(section); setBusy(section, false); }
+    };
+  }
+  byId("run-search").addEventListener("click", runWithLoading("search", runSearch));
+  byId("run-transform").addEventListener("click", runWithLoading("transform", runTransform));
   byId("download-csv").addEventListener("click", async () => { const response = await statsFor(); if (response.results.length) download("picotool-stats.csv", response.csv, "text/csv"); if (response.errors.length) announce(errorText(response), true); });
   for (const id of ["download-lua", "export-lua"]) byId(id).addEventListener("click", async () => {
     const active = current(); if (!active) return;
@@ -304,7 +425,7 @@
   byId("download-all").addEventListener("click", () => {
     for (const file of state.outputs) download(file.name, file.bytes);
   });
-  byId("preview-build").addEventListener("click", previewBuild);
+  byId("preview-build").addEventListener("click", runWithLoading("build", previewBuild));
   byId("build-sections").querySelectorAll(".section-row").forEach((row) => {
     const input = row.querySelector('input[type="file"]');
     const source = row.querySelector(".source-slot");

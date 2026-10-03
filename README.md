@@ -40,6 +40,10 @@ The browser interface uses the engine's command API with the same command names,
 - [x] Expose each of the ten CLI commands through the browser command API.
 - [x] Map CLI command options, source files, and output naming into browser controls.
 - [x] Display inspection and search output; download command-generated cartridge, Lua, and CSV results.
+- [x] Cache calculations in memory using exact file contents and all request options, with per-cartridge Stats reuse, bounded retention, and invalidation when the engine adapter changes. Failed calculations are retried.
+- [x] Show independent section loading states and ignore outdated inspection results after selection changes. Engine processing runs on the main thread; loading indicators do not make computation nonblocking.
+- [x] Full-width tool rows and selection-driven Stats table: one row per selected cartridge, explicit filenames, and CSV export of the same selection.
+- [x] Unified Add Files picker and drop handling for `.p8`, `.p8.png`, `.lua`, and `.txt`, with a removable file list and file-type help. Lua sources populate Build entries/modules; text files populate names-to-preserve choices.
 - [x] Keep local cartridge inputs available across commands without mutating their bytes.
 - [x] Include static-site build and GitHub Pages deployment workflow.
 - [ ] Verify import → command → download on the deployed site after the coordinated engine revision is published and pinned.

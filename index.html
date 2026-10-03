@@ -169,6 +169,15 @@
     .file-button:hover { background: #e92768; }
     .drop-note { margin: 10px 4px 22px; color: var(--faint); text-align: center; font-size: 10px; }
 
+    .file-toolbar { display: flex; align-items: center; gap: 8px; }
+    .file-toolbar .file-button { flex: 1; }
+    .file-help-button { flex: 0 0 32px; padding: 0; border-radius: 50%; min-height: 32px; }
+    .file-row { display: flex; align-items: center; gap: 2px; border-radius: 9px; }
+    .file-row .file-item { flex: 1; min-width: 0; text-align: left; }
+    .file-remove { opacity: 0; flex: 0 0 26px; min-height: 28px; padding: 0; color: var(--muted); background: transparent; }
+    .file-row:hover .file-remove, .file-row:focus-within .file-remove { opacity: 1; }
+    .file-remove:hover { color: var(--pink); }
+    @media (hover: none) { .file-remove { opacity: 1; } }
     .file-list { display: grid; gap: 8px; }
     .file-item {
       position: relative;
@@ -217,7 +226,7 @@
     h2 { margin: 0; font: 750 26px/1.2 system-ui, sans-serif; letter-spacing: -.035em; }
     .section-heading p:last-child { max-width: 520px; margin: 0; color: var(--muted); font: 13px/1.5 system-ui, sans-serif; }
 
-    .card-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+    .card-grid { display: flex; flex-direction: column; gap: 14px; }
     .card {
       min-width: 0;
       padding: 20px;
@@ -231,11 +240,24 @@
     .card.span-7 { grid-column: span 7; }
     .card.span-8 { grid-column: span 8; }
     .card.span-12 { grid-column: 1 / -1; }
+    .section-loading { display: none; align-items: center; gap: 8px; margin: 0 0 12px; color: var(--cyan); font: 12px/1.5 system-ui, sans-serif; }
+    [aria-busy="true"] > .section-loading { display: flex; }
+    .section-loading::before { content: ""; width: 12px; height: 12px; border: 2px solid var(--line-bright); border-top-color: var(--cyan); border-radius: 50%; animation: loading-spin .8s linear infinite; }
+    @keyframes loading-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .section-loading::before { animation: none; } }
     .card-title { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 15px; }
     .card-title h3 { margin: 0; font-size: 13px; letter-spacing: -.02em; }
     .command-tag { padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--faint); font-size: 8px; }
     .card-copy { margin: -6px 0 16px; color: var(--muted); font: 11px/1.5 system-ui, sans-serif; }
 
+    .stats-scroll { overflow-x: auto; }
+    .stats-table { width: 100%; border-collapse: collapse; font: 12px/1.5 system-ui, sans-serif; text-align: right; }
+    .stats-table th, .stats-table td { padding: 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    .stats-table th { color: var(--muted); font-size: 11px; font-weight: 500; }
+    .stats-table td { color: var(--cyan); font-variant-numeric: tabular-nums; }
+    .stats-table th:nth-child(-n+3), .stats-table td:nth-child(-n+3) { text-align: left; color: var(--ink); }
+    #stats-summary { overflow-wrap: anywhere; margin: 0 0 12px; }
+    .file-item[aria-pressed="true"] .cart-icon { background: var(--cyan); color: var(--panel); }
     .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .stat { padding: 11px; border: 1px solid var(--line); border-radius: 8px; background: #0d0d14; }
     .stat strong { display: block; color: var(--cyan); font-size: 16px; }
@@ -407,54 +429,33 @@
   <div class="workspace" id="top">
     <aside class="sidebar" aria-label="Selected files">
       <p class="sidebar-title">Local files</p>
-      <button class="file-button" id="select-cartridges" type="button">+ Select cartridges</button>
-      <input id="cartridge-input" type="file" accept=".p8,.p8.png" multiple hidden>
-      <p class="drop-note">or drop .p8 / .p8.png files here</p>
-
-      <div class="file-list" id="file-list"><p class="drop-note">Choose cartridges to begin.</p></div>
-
-      <div class="side-divider"></div>
-      <div class="side-actions">
-        <button id="add-support-file" type="button">⊕ Add Lua or name list</button>
-        <button id="select-module-folder" type="button">⌘ Select module folder</button>
-        <input id="support-file-input" type="file" accept=".lua,.txt" multiple hidden>
-        <input id="module-folder-input" type="file" accept=".lua" webkitdirectory multiple hidden>
+      <div class="file-toolbar">
+        <button class="file-button" id="add-files" type="button">+ Add Files</button>
+        <button id="file-help-button" class="file-help-button" type="button" aria-label="Allowed file types" aria-haspopup="dialog">?</button>
       </div>
+      <input id="file-input" type="file" accept=".p8,.p8.png,.lua,.txt" multiple hidden>
+      <p class="drop-note">or drop files here<br>Click to select · ⌘/Ctrl-click for multiple · Shift-click for a range</p>
+      <div class="file-list" id="file-list" aria-label="Added files"></div>
     </aside>
 
     <main>
-      <nav class="workspace-tabs" aria-label="Workspace tools">
-        <a href="#inspect">Inspect</a>
-        <a href="#transform">Transform</a>
-        <a href="#build">Build</a>
-        <a href="#export">Export</a>
-      </nav>
-
       <div class="main-content">
         <section class="section" id="inspect">
-          <div class="section-heading">
-            <div><p class="section-kicker">01 / Understand</p><h2>Inspect &amp; search</h2></div>
-            <p>Read cartridge statistics, Lua listings, code structure, and regex matches with the matching CLI commands.</p>
-          </div>
-
           <div class="card-grid">
-            <article class="card span-4" data-cli-commands="stats">
-              <div class="card-title"><h3>Cartridge statistics</h3><span class="command-tag">stats</span></div>
-              <p class="card-copy" id="stats-summary">Select a cartridge to calculate statistics.</p>
-              <div class="stat-grid" id="stat-grid">
-                <div class="stat"><strong>—</strong><span>lines</span></div>
-                <div class="stat"><strong>—</strong><span>chars</span></div>
-                <div class="stat"><strong>—</strong><span>tokens</span></div>
-                <div class="stat"><strong>—</strong><span>compressed</span></div>
-                <div class="stat"><strong>0</strong><span>carts</span></div>
-                <div class="stat"><strong>—</strong><span>format</span></div>
-              </div>
-              <div class="export-actions" style="margin-top:14px">
-                <button class="secondary-button" id="download-csv" type="button">Download CSV</button>
+            <article class="card span-12" id="stats-section" data-cli-commands="stats">
+              <p class="section-loading" role="status">Processing…</p>
+              <div class="card-title"><h3>Stats</h3><button class="secondary-button" id="download-csv" type="button" disabled>Download selected CSV</button></div>
+              <p class="card-copy" id="stats-summary" aria-live="polite">Select cartridges in the file list to show statistics.</p>
+              <div class="stats-scroll">
+                <table class="stats-table" aria-label="Statistics for selected cartridges">
+                  <thead><tr><th scope="col">Cartridge</th><th scope="col">Title</th><th scope="col">Byline</th><th scope="col">Lines</th><th scope="col">Characters</th><th scope="col">Tokens</th><th scope="col">Compressed bytes</th><th scope="col">Format</th></tr></thead>
+                  <tbody id="stats-rows"></tbody>
+                </table>
               </div>
             </article>
 
-            <article class="card span-8" data-cli-commands="listlua listrawlua">
+            <article class="card span-8" id="lua-section" data-cli-commands="listlua listrawlua">
+              <p class="section-loading" role="status">Processing…</p>
               <div class="card-title"><h3>Lua viewer</h3><span class="command-tag">listlua / listrawlua</span></div>
               <div class="options">
                 <label class="radio"><input type="radio" name="lua-view" value="normalized" checked> Normalized</label>
@@ -466,7 +467,8 @@
               <pre class="code-preview" id="lua-preview" aria-label="Lua source preview">Select a cartridge to view its Lua.</pre>
             </article>
 
-            <article class="card span-5" data-cli-commands="luafind">
+            <article class="card span-5" id="search-section" data-cli-commands="luafind">
+              <p class="section-loading" role="status">Processing…</p>
               <div class="card-title"><h3>Find in cartridges</h3><span class="command-tag">luafind</span></div>
               <div class="field-row">
                 <label class="field"><span>JavaScript regular expression</span><input id="search-pattern" type="text" value="print|spr" aria-label="Search regular expression"></label>
@@ -479,7 +481,8 @@
               <div class="result-list" id="search-results"></div>
             </article>
 
-            <article class="card span-7" data-cli-commands="listtokens printast">
+            <article class="card span-7" id="structure-section" data-cli-commands="listtokens printast">
+              <p class="section-loading" role="status">Processing…</p>
               <div class="card-title"><h3>Code structure</h3><span class="command-tag">listtokens / printast</span></div>
               <div class="segmented" role="group" aria-label="Code structure view">
                 <label><input type="radio" name="structure" value="tokens" checked>Tokens</label>
@@ -503,7 +506,8 @@
           </div>
 
           <div class="card-grid">
-            <article class="card span-5" data-cli-commands="writep8 luamin luafmt">
+            <article class="card span-5" id="transform-section" data-cli-commands="writep8 luamin luafmt">
+              <p class="section-loading" role="status">Processing…</p>
               <div class="card-title"><h3>Transformation</h3><span class="command-tag">writep8 / luamin / luafmt</span></div>
               <div class="segmented" role="group" aria-label="Transformation type">
                 <label><input type="radio" name="transform" value="writep8">Rewrite</label>
@@ -542,6 +546,7 @@
         </section>
 
         <section class="section" id="build" data-cli-commands="build">
+          <p class="section-loading" role="status">Processing…</p>
           <div class="section-heading">
             <div><p class="section-kicker">03 / Assemble</p><h2>Build a cartridge</h2></div>
             <p>Build from an empty cartridge or an existing local cartridge whose filename matches the output. Replace or clear sections with CLI source files.</p>
@@ -589,9 +594,10 @@
 
               <article class="sub-card">
                 <h4>Require modules</h4>
-                <div class="tree" id="module-tree">No module folder selected.</div>
-                <label class="field" style="margin-top:10px"><span>Lua entry from uploaded folder</span><select id="build-entry-module"><option value="">Use Lua section source</option></select></label>
+                <div class="tree" id="module-tree">No Lua modules added.</div>
+                <label class="field" style="margin-top:10px"><span>Lua entry from added files</span><select id="build-entry-module"><option value="">Use Lua section source</option></select></label>
                 <label class="field" style="margin-top:10px"><span>Lookup templates</span><input id="lua-path" type="text" value="?;?.lua"></label>
+                <input id="module-folder-input" type="file" accept=".lua" webkitdirectory multiple hidden>
                 <button id="build-select-modules" type="button" style="width:100%;margin-top:9px">Select module folder</button>
                 <p class="card-copy" style="margin:10px 0 0">Relative paths are retained. Nested dependencies are bundled in memory.</p>
               </article>
@@ -648,18 +654,34 @@
     <nav aria-label="Project links"><a href="README.md">Project notes</a><a href="https://github.com/jslinker/picotool-js">Engine</a><a href="LICENSE">MIT license</a></nav>
   </footer>
 
+  <dialog id="file-help" aria-labelledby="file-help-title">
+    <div class="help-head">
+      <h2 id="file-help-title">Supported file types</h2>
+      <button id="close-file-help" type="button" aria-label="Close file type help">Close</button>
+    </div>
+    <div class="help-body">
+      <p>Select several files at once, or drop them into the workspace.</p>
+      <div class="help-steps">
+        <div class="help-step"><b>.p8 · Text cartridge</b><span>Inspect code and statistics, search, format or minify Lua, and export a cartridge. Use cartridges as section sources in Build.</span></div>
+        <div class="help-step"><b>.p8.png · Image cartridge</b><span>A PICO-8 cartridge encoded in a PNG image. Inspect, transform, and use it in Build like a text cartridge. Ordinary .png images are not supported.</span></div>
+        <div class="help-step"><b>.lua · Lua source</b><span>Choose an added Lua file as the Build entry or use it as a require() module. For nested module paths, use Select module folder in Build.</span></div>
+        <div class="help-step"><b>.txt · Names to preserve</b><span>Select this file under Names to preserve when minifying in Transform or Build. List one identifier per line; blank lines and lines starting with # are ignored.</span></div>
+      </div>
+      <div class="help-foot"><span>◆ Files stay on this device. Removing a file only removes it from this workspace.</span></div>
+    </div>
+  </dialog>
   <dialog id="help" aria-labelledby="help-title">
     <div class="help-head">
       <h2 id="help-title">Using PICO Tool</h2>
       <button type="button" onclick="document.getElementById('help').close()" aria-label="Close help">Close</button>
     </div>
     <div class="help-body">
-      <p>Choose one or more local PICO-8 cartridges, then move between the four workspace views. Processing and downloads stay in this browser tab.</p>
+      <p>Add local files, then click a file in the left panel to select it. Use ⌘/Ctrl-click to add or remove individual files, or Shift-click to select a range. Tools are arranged in full-width rows. Processing and downloads stay in this browser tab.</p>
       <div class="help-steps">
-        <div class="help-step"><b>1 · Inspect</b><span>Review statistics, Lua, tokens, the syntax tree, and regex matches.</span></div>
-        <div class="help-step"><b>2 · Transform</b><span>Run writep8, luamin, or luafmt and download command output.</span></div>
-        <div class="help-step"><b>3 · Build</b><span>Assemble code, graphics, map, flags, SFX, and music into a cart.</span></div>
-        <div class="help-step"><b>4 · Export</b><span>Download command output files, Lua listings, or statistics.</span></div>
+        <div class="help-step"><b>Stats</b><span>Shows one row per selected cartridge, identified by filename. Download selected CSV exports the same selection. Lua and text files are excluded.</span></div>
+        <div class="help-step"><b>Lua tools</b><span>Run writep8, luamin, or luafmt and download command output.</span></div>
+        <div class="help-step"><b>Build</b><span>Assemble code, graphics, map, flags, SFX, and music into a cart.</span></div>
+        <div class="help-step"><b>Downloads</b><span>Download command output files, Lua listings, or statistics.</span></div>
       </div>
       <div class="help-foot"><span>◆ Files stay in this browser tab.</span><a href="README.md">Read project notes →</a></div>
     </div>
