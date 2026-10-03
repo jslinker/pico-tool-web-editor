@@ -223,7 +223,7 @@
     .workspace-tabs a:hover { color: var(--ink); }
 
     .main-content { max-width: 1240px; margin: 0 auto; padding: 24px 28px 52px; }
-    .section { margin-bottom: 54px; scroll-margin-top: 138px; }
+    .section { margin-bottom: 28px; scroll-margin-top: 138px; }
     .section:last-child { margin-bottom: 0; }
     .section-heading { display: flex; gap: 20px; align-items: end; justify-content: space-between; margin-bottom: 20px; }
     .section-kicker { margin: 0 0 5px; color: var(--pink); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; }
@@ -274,6 +274,16 @@
     .field-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
     .field-row button { color: var(--cyan); }
 
+    .name-list-picker { display: flex; align-items: center; gap: 7px; width: 100%; }
+    .name-list-picker select { flex: 1; min-width: 0; }
+    .name-list-help { flex: 0 0 22px; width: 22px; min-height: 22px; padding: 0; border-radius: 50%; font-size: 12px; }
+    .names-popover { width: min(300px, calc(100vw - 32px)); padding: 14px; border: 1px solid var(--line-bright); border-radius: 8px; color: var(--ink); background: var(--panel-raised); box-shadow: 0 8px 24px #0008; font: 12px/1.5 system-ui, sans-serif; }
+    .names-popover p { margin: 8px 0 0; }
+    .names-popover pre { margin: 8px 0; padding: 8px; background: var(--panel); border-radius: 4px; font-size: 11px; }
+    @supports (position-area: bottom) {
+      .names-popover { inset: auto; margin: 6px; position-area: bottom span-right; position-try-fallbacks: flip-block, flip-inline; }
+    }
+
     .listing-settings { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin: 8px 0; padding-top: 8px; border-top: 1px solid var(--line); }
     .explained { position: relative; }
     .explained:hover, .explained:focus-within { color: var(--ink); }
@@ -288,7 +298,7 @@
     .listing-share summary svg { width: 16px; height: 16px; }
     .share-options { position: absolute; left: 0; top: calc(100% + 5px); display: grid; gap: 4px; width: 180px; padding: 6px; border: 1px solid var(--line-bright); border-radius: 7px; background: var(--panel); z-index: 20; box-shadow: 0 8px 24px #0008; }
     .share-options button { text-align: left; font-size: 11px; }
-    #listing-share-status { color: var(--muted); font: 11px/1.4 system-ui, sans-serif; }
+    #listing-share-status, #transform-share-status { color: var(--muted); font: 11px/1.4 system-ui, sans-serif; }
     .listing-editor .code-preview { margin: 0; border: 0; border-radius: 0 0 8px 8px; }
     .code-preview {
       min-height: 178px;
@@ -324,6 +334,15 @@
     .flow-step.active { color: var(--ink); background: rgba(255, 47, 115, .08); }
     .flow-step b { margin-right: 6px; color: var(--pink); }
 
+    #inspect { margin-bottom: 12px; }
+    .tool-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .transform-launch { width: 100%; padding: 12px 14px; text-align: left; background: var(--panel); }
+    .transform-launch strong { display: block; font-size: 13px; }
+    .transform-launch small { display: block; margin-top: 4px; color: var(--muted); }
+    #search-dialog { width: min(860px, calc(100vw - 36px)); }
+    #search-results { max-height: 55dvh; overflow: auto; }
+    #search-results .result { grid-template-columns: minmax(80px, 1fr) 34px minmax(0, 3fr); overflow-wrap: anywhere; }
+    #transform-dialog .field { margin: 8px 0; }
     .transform-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
     .option-panel { padding: 14px; border: 1px solid var(--line); border-radius: 9px; background: #0d0d14; }
     .option-panel h4 { margin: 0 0 11px; color: var(--ink); font-size: 10px; }
@@ -483,72 +502,19 @@
               </div>
             </article>
 
-            <article class="card span-5" id="search-section" data-cli-commands="luafind">
-              <p class="section-loading" role="status">Processing…</p>
-              <div class="card-title"><h3>Find in cartridges</h3><span class="command-tag">luafind</span></div>
-              <div class="field-row">
-                <label class="field"><span>JavaScript regular expression</span><input id="search-pattern" type="text" value="print|spr" aria-label="Search regular expression"></label>
-                <button class="primary-button" id="run-search" type="button">Search</button>
-              </div>
-              <div class="options" style="margin-top:10px">
-                <label class="check"><input id="search-list-files" type="checkbox"> List matching filenames only</label>
-                <span id="search-status" style="color:var(--faint);font-size:9px">JavaScript regular expressions</span>
-              </div>
-              <div class="result-list" id="search-results"></div>
-            </article>
+
           </div>
         </section>
 
-        <section class="section" id="transform">
-          <div class="section-heading">
-            <div><p class="section-kicker">02 / Refine</p><h2>Rewrite &amp; transform</h2></div>
-            <p>Run a CLI transformation on one cart or a batch. Inputs stay in place; command outputs are separate downloadable files.</p>
-          </div>
-
-          <div class="flow-bar" aria-label="Transformation workflow">
-            <div class="flow-step active"><b>1</b> Choose operation</div>
-            <div class="flow-step"><b>2</b> Choose CLI options</div>
-            <div class="flow-step"><b>3</b> Download command output</div>
-          </div>
-
-          <div class="card-grid">
-            <article class="card span-5" id="transform-section" data-cli-commands="writep8 luamin luafmt">
-              <p class="section-loading" role="status">Processing…</p>
-              <div class="card-title"><h3>Transformation</h3><span class="command-tag">writep8 / luamin / luafmt</span></div>
-              <div class="segmented" role="group" aria-label="Transformation type">
-                <label><input type="radio" name="transform" value="writep8">Rewrite</label>
-                <label><input type="radio" name="transform" value="luamin" checked>Minify</label>
-                <label><input type="radio" name="transform" value="luafmt">Format</label>
-              </div>
-              <p class="card-copy" style="margin-top:12px">Rewrite normalizes the cartridge through the default writer. PNG inputs keep their visible labels.</p>
-              <div class="transform-controls">
-                <div class="option-panel">
-                  <h4 class="minify-option">Minify settings</h4>
-                  <label class="check minify-option"><input id="transform-keep-all" type="checkbox"> Keep all names</label>
-                  <label class="field minify-option"><span>Names to preserve</span><select id="transform-name-list"><option value="">No name list</option></select></label>
-                </div>
-                <div class="option-panel">
-                  <h4 class="format-option">Format settings</h4>
-                  <label class="field format-option"><span>Indent width</span><input id="transform-indent" type="number" value="2" step="1"></label>
-                  <label class="check format-option"><input id="transform-overwrite" type="checkbox"> Use original output filename (.p8 only)</label>
-                </div>
-              </div>
-              <div class="options" style="margin-top:14px">
-                <label class="check"><input id="transform-all" type="checkbox"> Run on all cartridges</label>
-              </div>
-            </article>
-
-            <article class="card span-7">
-              <div class="card-title"><h3>Command output</h3><span class="command-tag">separate files</span></div>
-              <p class="card-copy">Run the selected CLI command to create output files. Download each result here or use Download all.</p>
-              <button class="primary-button" id="run-transform" type="button">Run command</button>
-            </article>
-
-            <article class="card span-12">
-              <div class="card-title"><h3>Command results</h3><span class="command-tag">per-file output</span></div>
-              <div class="batch-list" id="transform-results"><p class="card-copy">No command run yet.</p></div>
-            </article>
-          </div>
+        <section class="section tool-actions" id="transform" aria-label="Cartridge tools">
+          <button class="transform-launch" id="open-search" type="button" aria-haspopup="dialog" aria-controls="search-dialog">
+            <strong>Search</strong>
+            <small id="search-count">0 files</small>
+          </button>
+          <button class="transform-launch" id="open-transform" type="button" aria-haspopup="dialog" aria-controls="transform-dialog" disabled>
+            <strong>Format &amp; Minify</strong>
+            <small id="transform-count">0 files</small>
+          </button>
         </section>
 
         <section class="section" id="build" data-cli-commands="build">
@@ -592,7 +558,20 @@
                 </div>
                 <div class="options" style="margin-top:11px">
                   <label class="check"><input id="build-keep-all" type="checkbox"> Keep all names</label>
-                  <select id="build-name-list"><option value="">No name list</option></select>
+                  <div class="name-list-picker">
+                    <select id="build-name-list" aria-label="Names to preserve"><option value="">No name list</option></select>
+                    <button class="name-list-help" type="button" popovertarget="build-names-help" aria-label="What is a names list?" style="anchor-name: --build-names-help">?</button>
+                  </div>
+                  <div class="names-popover" id="build-names-help" popover style="position-anchor: --build-names-help">
+                    <strong>What is a names list?</strong>
+                    <p>A names list is a .txt file containing Lua names you want to keep unchanged when minifying. Other names may be shortened to make the code smaller.</p>
+                    <p>Put one name per line, matching its spelling and capitalization:</p>
+                    <pre>player_score
+update_player
+# This is a comment</pre>
+                    <p>Blank lines and lines starting with # are ignored. Add the .txt file using <b>Add Files</b>, then choose it here.</p>
+                    <p>It only affects Minify. <b>Keep all names</b> preserves every name, so a list is unnecessary with that option enabled.</p>
+                  </div>
                   <label class="check"><input id="build-optimize-tokens" type="checkbox"> Optimize tokens</label>
                   <p class="card-copy" style="margin:6px 0 0">The CLI does not yet implement token optimization for raw Lua builds.</p>
                 </div>
@@ -659,6 +638,84 @@
     <span id="workspace-status">0 cartridges · processing stays on this device</span>
     <nav aria-label="Project links"><a href="README.md">Project notes</a><a href="https://github.com/jslinker/picotool-js">Engine</a><a href="LICENSE">MIT license</a></nav>
   </footer>
+
+  <dialog class="listing-dialog" id="search-dialog" aria-labelledby="search-dialog-title">
+    <div class="help-head">
+      <h2 id="search-dialog-title">Search</h2>
+      <button id="close-search-dialog" type="button">Close</button>
+    </div>
+            <article class="card span-5" id="search-section" data-cli-commands="luafind">
+              <p class="section-loading" role="status">Processing…</p>
+              <p class="card-copy" id="search-scope">Search all added cartridges.</p>
+              <form class="field-row" id="search-form">
+                <label class="field"><span>JavaScript regular expression</span><input id="search-pattern" type="text" value="print|spr" aria-label="Search regular expression"></label>
+                <button class="primary-button" id="run-search" type="submit">Search</button>
+              </form>
+              <div class="options" style="margin-top:10px">
+                <label class="check"><input id="search-list-files" type="checkbox"> List matching filenames only</label>
+                <span id="search-status" role="status" aria-live="polite" style="color:var(--faint);font-size:9px">JavaScript regular expressions</span>
+              </div>
+              <div class="result-list" id="search-results"></div>
+            </article>
+  </dialog>
+
+  <dialog class="listing-dialog" id="transform-dialog" aria-labelledby="transform-dialog-title">
+    <div class="help-head">
+      <h2 id="transform-dialog-title">Format &amp; Minify</h2>
+      <button id="close-transform-dialog" type="button" autofocus>Close</button>
+    </div>
+    <article class="card" id="transform-section" data-cli-commands="luamin luafmt">
+      <p class="section-loading" role="status">Processing…</p>
+      <p class="card-copy" id="transform-scope"></p>
+      <div class="options" role="group" aria-label="Transformation type">
+        <label class="radio"><input type="radio" name="transform" value="luafmt" checked> Format</label>
+        <label class="radio"><input type="radio" name="transform" value="luamin"> Minify</label>
+      </div>
+      <div class="listing-settings">
+        <div class="format-option">
+          <label class="field"><span>Indent width</span><input id="transform-indent" type="number" value="2" min="0" step="1"></label>
+          <label class="check"><input id="transform-overwrite" type="checkbox"> Use original output filename (.p8 only)</label>
+        </div>
+        <div class="minify-option" hidden>
+          <label class="check"><input id="transform-keep-all" type="checkbox"> Keep all names</label>
+          <div class="field"><span>Names to preserve</span><div class="name-list-picker">
+                    <select id="transform-name-list" aria-label="Names to preserve"><option value="">No name list</option></select>
+                    <button class="name-list-help" type="button" popovertarget="transform-names-help" aria-label="What is a names list?" style="anchor-name: --transform-names-help">?</button>
+                  </div>
+                  <div class="names-popover" id="transform-names-help" popover style="position-anchor: --transform-names-help">
+                    <strong>What is a names list?</strong>
+                    <p>A names list is a .txt file containing Lua names you want to keep unchanged when minifying. Other names may be shortened to make the code smaller.</p>
+                    <p>Put one name per line, matching its spelling and capitalization:</p>
+                    <pre>player_score
+update_player
+# This is a comment</pre>
+                    <p>Blank lines and lines starting with # are ignored. Add the .txt file using <b>Add Files</b>, then choose it here.</p>
+                    <p>It only affects Minify. <b>Keep all names</b> preserves every name, so a list is unnecessary with that option enabled.</p>
+                  </div></div>
+        </div>
+      </div>
+      <p class="card-copy">Preview the resulting Lua for each selected cartridge. Save the code or the complete cartridge from Share.</p>
+      <p class="card-copy" id="transform-status" role="status" aria-live="polite"></p>
+      <label class="field"><span>Output file</span><select id="transform-output" disabled></select></label>
+      <div class="listing-editor">
+        <div class="listing-toolbar">
+          <details class="listing-share" id="transform-share">
+            <summary aria-label="Share transformed output" title="Copy or save this output">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 15V3m-4 4 4-4 4 4M5 12v8h14v-8"/></svg>
+            </summary>
+            <div class="share-options">
+              <button id="copy-transform" type="button" disabled>Copy Lua to clipboard</button>
+              <button id="save-transform-lua" type="button" disabled>Save Lua to disk</button>
+              <button id="save-transform" type="button" disabled>Save cartridge to disk</button>
+              <button id="save-all-transforms" type="button" disabled>Save all cartridges</button>
+            </div>
+          </details>
+          <span id="transform-share-status" role="status" aria-live="polite"></span>
+        </div>
+        <pre class="code-preview" id="transform-preview" aria-label="Transformed Lua preview"></pre>
+      </div>
+    </article>
+  </dialog>
 
   <dialog class="listing-dialog" id="lua-dialog" aria-labelledby="lua-dialog-title">
     <div class="help-head">

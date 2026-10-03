@@ -123,6 +123,10 @@
       row.append(button, remove, view);
       list.append(row);
     });
+    const count = selectedCartridges().length;
+    byId("search-count").textContent = `${workingFiles().length} files`;
+    byId("transform-count").textContent = `${count} files`;
+    byId("open-transform").disabled = count === 0;
     const active = current();
     byId("active-file-name").textContent = active?.working.name || "No cartridge selected";
     byId("copy-state").textContent = "Local workspace";
@@ -328,12 +332,10 @@
   }
 
   async function transformRequest() {
-    const active = current();
-    if (!active) return null;
     const command = selectedValue("transform");
     const supportIndex = byId("transform-name-list").value;
     const keepNamesFile = supportIndex === "" ? undefined : state.supportFiles.find((file) => file.name === supportIndex);
-    const cartridges = byId("transform-all").checked ? workingFiles() : [active.working];
+    const cartridges = selectedCartridges();
     const options = { cartridges };
     if (command === "luamin") {
       options.keepAllNames = byId("transform-keep-all").checked;
@@ -346,35 +348,62 @@
     return api.cli[command](options);
   }
 
+  let transformRevision = 0;
+  let transformResults = [];
+  const transformResult = () => transformResults[Number(byId("transform-output").value)];
+
+  function showTransformPreview() {
+    const result = transformResult();
+    byId("transform-preview").textContent = result?.lua || "";
+    for (const id of ["copy-transform", "save-transform-lua", "save-transform"]) byId(id).disabled = !result;
+    byId("save-all-transforms").disabled = !transformResults.length;
+    byId("transform-share").open = false;
+    byId("transform-share-status").textContent = "";
+  }
+
   async function runTransform() {
-    const response = await transformRequest();
-    const target = byId("transform-results");
-    target.replaceChildren();
-    if (!response) return;
-    for (const result of response.results) {
-      state.outputs = state.outputs.filter((file) => file.name !== result.output.name);
-      state.outputs.push(result.output);
-      const row = document.createElement("div");
-      row.className = "batch-item";
-      row.innerHTML = '<i class="status-ok"></i><span></span><small>Ready</small>';
-      row.querySelector("span").textContent = `${result.name} → ${result.output.name}`;
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = "Download";
-      button.addEventListener("click", () => download(result.output.name, result.output.bytes));
-      row.append(button);
-      target.append(row);
+    const revision = ++transformRevision;
+    const previousName = transformResult()?.name;
+    transformResults = [];
+    byId("transform-output").replaceChildren();
+    byId("transform-output").disabled = true;
+    showTransformPreview();
+    setBusy("transform", true);
+    byId("transform-status").textContent = "Generating preview…";
+    const files = selectedCartridges();
+    byId("transform-scope").textContent = `${files.length} files · ${files.map((file) => file.name).join(", ")}`;
+    try {
+      // rAF runs before paint. Waiting for a second frame lets the modal and
+      // spinner paint before the main-thread engine begins its work.
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      if (revision !== transformRevision || !byId("transform-dialog").open) return;
+      const response = await transformRequest();
+      if (revision !== transformRevision) return;
+      transformResults = response.results;
+      for (const [index, result] of transformResults.entries()) {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = result.output.name;
+        byId("transform-output").append(option);
+      }
+      byId("transform-output").value = String(Math.max(0, transformResults.findIndex((result) => result.name === previousName)));
+      byId("transform-output").disabled = !transformResults.length;
+      byId("transform-status").textContent = response.errors.length
+        ? `${transformResults.length} ready. ${errorText(response)}`
+        : `${transformResults.length} files ready.`;
+      showTransformPreview();
+    } catch (error) {
+      if (revision === transformRevision) byId("transform-status").textContent = error.message;
+    } finally {
+      if (revision === transformRevision) setBusy("transform", false);
     }
-    for (const error of response.errors) {
-      const row = document.createElement("div");
-      row.className = "batch-item";
-      row.innerHTML = '<i class="status-error"></i><span></span><small style="color:var(--pink)"></small>';
-      row.querySelector("span").textContent = error.name;
-      row.querySelector("small").textContent = error.message;
-      target.append(row);
-    }
-    if (response.errors.length) announce(`${response.results.length} succeeded; ${errorText(response)}`, true);
-    renderAll();
+  }
+
+  function saveTransform(result) {
+    state.outputs = state.outputs.filter((file) => file.name !== result.output.name);
+    state.outputs.push(result.output);
+    download(result.output.name, result.output.bytes);
+    renderExports();
   }
 
   async function previewBuild() {
@@ -445,7 +474,7 @@
     byId("lua-pure").disabled = selectedValue("lua-view") === "raw";
   }
   updateListingOptions();
-  document.querySelectorAll('input[name="transform"], #transform-keep-all, #transform-overwrite, #transform-indent, #transform-name-list').forEach((input) => input.addEventListener("change", updateTransformOptions));
+  document.querySelectorAll('input[name="transform"], #transform-keep-all, #transform-overwrite, #transform-indent, #transform-name-list').forEach((input) => input.addEventListener("change", () => { updateTransformOptions(); if (byId("transform-dialog").open) return runTransform(); }));
   function updateTransformOptions() {
     const command = selectedValue("transform");
     document.querySelectorAll(".minify-option").forEach((element) => { element.hidden = command !== "luamin"; });
@@ -463,8 +492,62 @@
       finally { runningSections.delete(section); setBusy(section, false); }
     };
   }
-  byId("run-search").addEventListener("click", runWithLoading("search", runSearch));
-  byId("run-transform").addEventListener("click", runWithLoading("transform", runTransform));
+  byId("open-search").addEventListener("click", () => {
+    const count = workingFiles().length;
+    byId("search-scope").textContent = `Search all ${count} added cartridge${count === 1 ? "" : "s"}.`;
+    byId("search-dialog").showModal();
+    byId("search-pattern").focus();
+  });
+  byId("close-search-dialog").addEventListener("click", () => byId("search-dialog").close());
+  const submitSearch = runWithLoading("search", runSearch);
+  byId("search-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    return submitSearch();
+  });
+  byId("open-transform").addEventListener("click", () => {
+    byId("transform-dialog").showModal();
+    return runTransform();
+  });
+  byId("close-transform-dialog").addEventListener("click", () => byId("transform-dialog").close());
+  byId("transform-dialog").addEventListener("close", () => {
+    ++transformRevision;
+    setBusy("transform", false);
+  });
+  byId("transform-output").addEventListener("change", showTransformPreview);
+  byId("copy-transform").addEventListener("click", async () => {
+    const result = transformResult(); if (!result) return;
+    try {
+      await navigator.clipboard.writeText(result.lua);
+      byId("transform-share-status").textContent = "Copied to clipboard.";
+    } catch (error) {
+      byId("transform-share-status").textContent = "Could not copy. Select the text to copy manually, or save to disk.";
+    } finally { byId("transform-share").open = false; }
+  });
+  byId("save-transform-lua").addEventListener("click", () => {
+    const result = transformResult(); if (!result) return;
+    download(listingFilename(result.output), result.lua, "text/plain");
+    byId("transform-share").open = false;
+    byId("transform-share-status").textContent = "Download started.";
+  });
+  byId("save-transform").addEventListener("click", () => {
+    const result = transformResult(); if (!result) return;
+    saveTransform(result);
+    byId("transform-share").open = false;
+    byId("transform-share-status").textContent = "Download started.";
+  });
+  byId("save-all-transforms").addEventListener("click", () => {
+    transformResults.forEach(saveTransform);
+    byId("transform-share").open = false;
+    byId("transform-share-status").textContent = "Downloads started.";
+  });
+  byId("transform-share").addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && byId("transform-share").open) {
+      event.preventDefault();
+      event.stopPropagation();
+      byId("transform-share").open = false;
+      byId("transform-share").querySelector("summary").focus();
+    }
+  });
   byId("download-csv").addEventListener("click", async () => { const response = await statsFor(); if (response.results.length) download("picotool-stats.csv", response.csv, "text/csv"); if (response.errors.length) announce(errorText(response), true); });
   byId("copy-lua").addEventListener("click", async () => {
     try {

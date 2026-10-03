@@ -2,7 +2,7 @@
 
 A browser interface for the ten commands in [picotool-js](https://github.com/jslinker/picotool-js). Choose local cartridge files, select a CLI command and its options, inspect the command result, and download generated output. Files are processed in the browser and are not uploaded.
 
-**Status:** the interface exposes all ten CLI commands: `stats`, `listlua`, `listrawlua`, `listtokens`, `printast`, `luafind`, `writep8`, `luamin`, `luafmt`, and `build`. It presents their arguments and output in browser controls; it does not add cartridge editing, conversion, comparison, or game-running features. Deployed-site import and export still needs verification after the coordinated engine revision is published and pinned.
+**Status:** the browser API exposes all ten CLI commands: `stats`, `listlua`, `listrawlua`, `listtokens`, `printast`, `luafind`, `writep8`, `luamin`, `luafmt`, and `build`. It presents their arguments and output in browser controls; it does not add cartridge editing, conversion, comparison, or game-running features. Deployed-site import and export still needs verification after the coordinated engine revision is published and pinned.
 
 ## Setup
 
@@ -28,7 +28,7 @@ Cartridge commands accept `.p8` and `.p8.png` inputs where supported by the CLI.
 | `listtokens` | List Lua tokens, whitespace, and comments. |
 | `printast` | Print the Lua abstract syntax tree. |
 | `luafind` | Search with a regular expression; `--listfiles` emits each matching filename once. |
-| `writep8` | Rewrite cartridges with the default writer. |
+| `writep8` | Rewrite cartridges with the default writer (API only). |
 | `luamin` | Minify Lua; `--keep-all-names` and `--keep-names-from-file FILE`. |
 | `luafmt` | Format Lua; `--indentwidth N` and `--overwrite` (for `.p8`). |
 | `build` | Create/update one cartridge from CLI-selected sources; supports `--lua`, `--gfx`, `--gff`, `--map`, `--sfx`, `--music`, matching `--empty-*` flags, `--lua-path`, `--lua-format`, `--lua-minify`, and keep-name options. `--optimize-tokens` is accepted but unimplemented for raw `.lua` sources. |
@@ -39,12 +39,15 @@ The browser interface uses the engine's command API with the same command names,
 
 - [x] Preserve P8SCII glyphs in AST parsing and support integer division and PICO-8 shifts; verify local cartridges against the CLI and retain token class names in the browser bundle.
 - [x] Expose each of the ten CLI commands through the browser command API.
-- [x] Map CLI command options, source files, and output naming into browser controls.
+- [x] Map CLI command options, source files, and output naming into browser controls; default rewrite remains available through the API.
+- [x] Names-list help popovers beside the Minify and Build pickers explain preservation, text-file syntax, and importing a list.
+- [x] Compact, side-by-side Search and Format & Minify buttons. Search opens a modal with regular-expression controls, filename-only mode, and results across all added cartridges.
+- [x] Open Format & Minify from a selection-count button, preview each selected cartridge with automatically updated options, and copy Lua or save Lua/cartridges from its share menu.
 - [x] Open a single file viewer from the square eye icon above each file’s remove icon (on hover, keyboard focus, or touch). Cartridges offer Lua, raw Lua, tokens, AST, listing options, and Lua downloads; Lua and text support files show their contents. Viewing a file preserves the batch selection.
 - [x] Explain viewer controls on hover and keyboard focus, separate listing options, and copy or save the displayed source from its share menu.
 - [x] Display inspection and search output; download command-generated cartridge, Lua, and CSV results.
 - [x] Cache calculations in memory using exact file contents and all request options, with per-cartridge Stats reuse, bounded retention, and invalidation when the engine adapter changes. Failed calculations are retried.
-- [x] Show independent section loading states and ignore outdated inspection results after selection changes. Engine processing runs on the main thread; loading indicators do not make computation nonblocking.
+- [x] Show independent section loading states and ignore outdated inspection results after selection changes. Format & Minify yields a paint frame before processing so its modal and spinner appear first, including after option changes. Engine processing remains on the main thread; loading indicators do not make computation nonblocking.
 - [x] Full-width tool rows and selection-driven Stats table: one row per selected cartridge, explicit filenames, and CSV export of the same selection.
 - [x] Unified Add Files picker and drop handling for `.p8`, `.p8.png`, `.lua`, and `.txt`, with a removable file list and file-type help. Lua sources populate Build entries/modules; text files populate names-to-preserve choices.
 - [x] Keep local cartridge inputs available across commands without mutating their bytes.

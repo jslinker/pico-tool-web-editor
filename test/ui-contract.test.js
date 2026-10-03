@@ -35,7 +35,7 @@ class Element {
 const bytesFile = (name, bytes) => ({ name, webkitRelativePath: name,
   async arrayBuffer() { return Uint8Array.from(bytes).buffer; }, async text() { return "keep_name\n"; } });
 
-function harness(overrides = {}, useCache = false) {
+function harness(overrides = {}, useCache = false, requestFrame = (callback) => setImmediate(callback)) {
   const elements = new Map();
   const get = (id) => { if (!elements.has(id)) elements.set(id, new Element(id)); return elements.get(id); };
   const radios = new Map([["transform", "luamin"], ["lua-view", "normalized"], ["structure", "tokens"], ["build-lua", "unchanged"]]);
@@ -48,7 +48,7 @@ function harness(overrides = {}, useCache = false) {
     if (command === "stats") return success(command, request.cartridges.map((file) => ({ ...file, title: "Game", version: 1, lineCount: 1, characterCount: 1, tokenCount: 1, compressedSize: 1 })));
     if (["listlua", "listrawlua", "listtokens", "printast"].includes(command)) return success(command, [{ text: command }]);
     if (command === "luafind") return success(command, []);
-    if (["luamin", "luafmt", "writep8"].includes(command)) return success(command, request.cartridges.map((file) => ({ name: file.name, output: { name: command === "luafmt" && request.overwrite ? file.name : file.name.replace(/\.p8$/, "_fmt.p8"), bytes: Uint8Array.from([9]) } })));
+    if (["luamin", "luafmt", "writep8"].includes(command)) return success(command, request.cartridges.map((file) => ({ name: file.name, lua: "print(1)", output: { name: command === "luafmt" && request.overwrite ? file.name : file.name.replace(/\.p8$/, "_fmt.p8"), bytes: Uint8Array.from([9]) } })));
     if (command === "build") return success(command, [{ output: { name: request.outputName, bytes: Uint8Array.from([8]) }, stats: { tokenCount: 1 } }]);
     return success(command);
   }]));
@@ -70,7 +70,7 @@ function harness(overrides = {}, useCache = false) {
     createElement: () => { const element = new Element("anchor"); element.click = () => downloads.push([element.download, element.href]); return element; },
   };
   const context = { window: { PicoToolWeb: useCache ? require("../app.js").createPicoToolWebApi({ engineAdapter: cli }) : { cli } }, document, navigator: { clipboard }, Blob, URL: { createObjectURL: () => "blob:test", revokeObjectURL() {} },
-    setTimeout() {}, console, Uint8Array, TextEncoder, TextDecoder };
+    requestAnimationFrame: requestFrame, setTimeout() {}, console, Uint8Array, TextEncoder, TextDecoder };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "ui.js"), "utf8"), context);
   return { get, calls, downloads, copied, clipboard, radios, change: (key) => changeHandlers.get(key)?.({ target: get(key) }) };
 }
@@ -78,28 +78,37 @@ function harness(overrides = {}, useCache = false) {
 test("UI maps a batch format command to CLI options and keeps input bytes unchanged", async () => {
   const h = harness();
   h.radios.set("transform", "luafmt");
-  h.get("transform-all").checked = true;
   h.get("transform-overwrite").checked = true;
   h.get("transform-indent").value = "4";
   const input = h.get("file-input");
   input.files = [bytesFile("one.p8", [1, 2]), bytesFile("two.p8", [3, 4])];
   await input.handlers.change({ target: input });
 
-  await h.get("run-transform").click();
+  await h.get("open-transform").click();
   const request = h.calls.find(([command]) => command === "luafmt")[1];
   assert.deepEqual(Array.from(request.cartridges, (file) => file.name), ["one.p8", "two.p8"]);
   assert.equal(request.indentwidth, 4);
   assert.equal(request.overwrite, true);
   assert.deepEqual(Array.from(request.cartridges[0].bytes), [1, 2]);
-  assert.equal(h.get("transform-results").children.length, 2);
-  assert.equal(typeof h.get("transform-results").children[0].children.at(-1).handlers.click, "function");
+  assert.equal(h.get("transform-output").children.length, 2);
+  assert.equal(h.get("transform-dialog").open, true);
+  assert.equal(h.get("transform-count").textContent, "2 files");
+  assert.equal(h.get("transform-preview").textContent, "print(1)");
+  await h.get("copy-transform").click();
+  assert.deepEqual(h.copied, ["print(1)"]);
+  await h.get("save-transform").click();
+  assert.equal(h.downloads.at(-1)[0], "one.p8");
+  h.get("transform-output").value = "1";
+  h.get("transform-output").handlers.change();
+  await h.get("save-transform-lua").click();
+  assert.equal(h.downloads.at(-1)[0], "two.lua");
 });
 
-test("UI exposes the ten CLI commands and omits non-CLI editing controls", () => {
+test("UI exposes format and minify in a dialog and omits old editing controls", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
-  const commands = ["stats", "listlua", "listrawlua", "listtokens", "printast", "luafind", "writep8", "luamin", "luafmt", "build"];
+  const commands = ["stats", "listlua", "listrawlua", "listtokens", "printast", "luafind", "luamin", "luafmt", "build"];
   for (const command of commands) assert.match(html, new RegExp(`\\b${command}\\b`), command);
-  for (const removed of ["Compare all", "Convert to PNG", "Restore original", "transform-preview", "working-copy-toggle"]) {
+  for (const removed of ["Compare all", "Convert to PNG", "Restore original", "transform-all", "working-copy-toggle"]) {
     assert.ok(!html.toLowerCase().includes(removed.toLowerCase()), `unexpected non-CLI UI: ${removed}`);
   }
 });
@@ -135,7 +144,7 @@ test("search displays successful matches alongside a per-cartridge CLI error", a
   input.files = [bytesFile("good.p8", [1]), bytesFile("bad.p8", [2])];
   await input.handlers.change({ target: input });
   h.get("search-pattern").value = "print";
-  await h.get("run-search").click();
+  await h.get("search-form").handlers.submit({ preventDefault() {} });
   assert.equal(h.get("search-results").children.length, 1);
   assert.match(h.get("search-status").textContent, /1 failed/);
   assert.equal(h.calls.find(([command]) => command === "luafind")[1].pattern, "print");
@@ -205,7 +214,7 @@ test("mixed files route to cartridges, Lua modules and name lists; removal clear
   // Removing an earlier name list must not change the selected list.
   h.get("file-list").children[2].children[1].handlers.click();
   assert.equal(h.get("transform-name-list").value, "keep.txt");
-  await h.get("run-transform").click();
+  await h.get("open-transform").click();
   assert.deepEqual(Array.from(h.calls.find(([command]) => command === "luamin")[1].keepNamesBytes), [4]);
   h.get("build-output-name").value = "out";
   h.get("build-output-format").value = ".p8";
@@ -431,4 +440,88 @@ test("listing downloads use a nonempty fallback for unnamed cartridges", async (
   await new Promise((resolve) => setImmediate(resolve));
   await h.get("download-lua").click();
   assert.equal(h.downloads.at(-1)[0], "cartridge.lua");
+});
+
+
+test("transform selection excludes support files and disables the launcher for text-only selection", async () => {
+  const h = harness();
+  const input = h.get("file-input");
+  input.files = [bytesFile("one.p8", [1]), bytesFile("two.p8", [2]), bytesFile("names.txt", [3])];
+  await input.handlers.change({ target: input });
+  h.get("file-list").children[1].children[0].handlers.click({});
+  assert.equal(h.get("transform-count").textContent, "1 files");
+  await h.get("open-transform").click();
+  const request = h.calls.filter(([command]) => command === "luamin").at(-1)[1];
+  assert.deepEqual(Array.from(request.cartridges, (file) => file.name), ["two.p8"]);
+  h.get("file-list").children[2].children[0].handlers.click({});
+  assert.equal(h.get("transform-count").textContent, "0 files");
+  assert.equal(h.get("open-transform").disabled, true);
+});
+
+test("transform ignores outdated previews and reports per-file failures", async () => {
+  const pending = [];
+  const h = harness({ luamin: () => new Promise((resolve) => pending.push(resolve)) });
+  const input = h.get("file-input"); input.files = [bytesFile("one.p8", [1])];
+  await input.handlers.change({ target: input });
+  const first = h.get("open-transform").click();
+  await new Promise((resolve) => setImmediate(() => setImmediate(resolve)));
+  const second = h.get("open-transform").click();
+  await new Promise((resolve) => setImmediate(() => setImmediate(resolve)));
+  pending[1]({ results: [{ name: "one.p8", lua: "new", output: { name: "one_fmt.p8", bytes: [1] } }],
+    errors: [{ name: "bad.p8", message: "Invalid Lua" }] });
+  await second;
+  pending[0]({ results: [{ name: "one.p8", lua: "old", output: { name: "one_fmt.p8", bytes: [2] } }], errors: [] });
+  await first;
+  assert.equal(h.get("transform-preview").textContent, "new");
+  assert.match(h.get("transform-status").textContent, /Invalid Lua/);
+  assert.equal(h.get("copy-transform").disabled, false);
+});
+
+
+test("transform paints the modal and busy state before processing on open and option changes", async () => {
+  const frames = [];
+  const h = harness({}, false, (callback) => frames.push(callback));
+  const input = h.get("file-input"); input.files = [bytesFile("one.p8", [1])];
+  await input.handlers.change({ target: input });
+  const count = () => h.calls.filter(([command]) => ["luamin", "luafmt"].includes(command)).length;
+
+  const opening = h.get("open-transform").click();
+  assert.equal(h.get("transform-dialog").open, true);
+  assert.equal(h.get("transform-section")["aria-busy"], "true");
+  assert.equal(count(), 0);
+  frames.shift()();
+  await Promise.resolve();
+  assert.equal(count(), 0, "the first frame must remain available for painting");
+  frames.shift()();
+  await opening;
+  assert.equal(count(), 1);
+  assert.equal(h.get("transform-section")["aria-busy"], "false");
+
+  h.radios.set("transform", "luafmt");
+  h.get("transform-indent").value = "4";
+  const changing = h.change("transform");
+  assert.equal(h.get("transform-section")["aria-busy"], "true");
+  assert.equal(h.get("copy-transform").disabled, true);
+  assert.equal(count(), 1);
+  frames.shift()();
+  frames.shift()();
+  await changing;
+  assert.equal(count(), 2);
+  assert.equal(h.calls.filter(([command]) => command === "luafmt").at(-1)[1].indentwidth, 4);
+  assert.equal(h.get("transform-section")["aria-busy"], "false");
+});
+
+test("closing the transform modal before paint skips pending processing", async () => {
+  const frames = [];
+  const h = harness({}, false, (callback) => frames.push(callback));
+  const input = h.get("file-input"); input.files = [bytesFile("one.p8", [1])];
+  await input.handlers.change({ target: input });
+  const opening = h.get("open-transform").click();
+  await h.get("close-transform-dialog").click();
+  h.get("transform-dialog").handlers.close();
+  frames.shift()();
+  frames.shift()();
+  await opening;
+  assert.equal(h.calls.filter(([command]) => command === "luamin").length, 0);
+  assert.equal(h.get("transform-section")["aria-busy"], "false");
 });
