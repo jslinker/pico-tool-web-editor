@@ -350,7 +350,7 @@
     .flow-step b { margin-right: 6px; color: var(--pink); }
 
     #inspect { margin-bottom: 12px; }
-    .tool-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .tool-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
     .transform-launch { width: 100%; padding: 12px 14px; text-align: left; background: var(--panel); }
     .transform-launch strong { display: block; font-size: 13px; }
     .transform-launch small { display: block; margin-top: 4px; color: var(--muted); }
@@ -367,24 +367,18 @@
     .delta { display: flex; gap: 10px; color: var(--muted); font-size: 9px; }
     .delta strong { color: var(--green); }
 
+    #build-dialog { width: min(1100px, calc(100vw - 36px)); }
+    .build-module-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .build-module { padding: 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 11px; overflow-wrap: anywhere; }
+    .build-module.is-main { color: var(--faint); background: var(--panel); }
+    .build-module:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+    .build-section-row { display: grid; grid-template-columns: 85px minmax(0, 1fr); align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
+    .build-section-row span { overflow-wrap: anywhere; font-size: 11px; }
+    .build-section-row select { width: 100%; }
+    .build-formatting { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 10px; font-weight: 600; }
+    .build-formatting select { min-width: 0; flex: 1; }
     .build-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, .46fr); gap: 14px; }
     .section-map { display: grid; gap: 8px; }
-    .section-row {
-      display: grid;
-      grid-template-columns: 90px minmax(0, 1fr) auto;
-      gap: 10px;
-      align-items: center;
-      min-height: 52px;
-      padding: 8px 10px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #0d0d14;
-    }
-    .section-name { color: var(--ink); font-size: 10px; }
-    .section-name span { display: block; margin-top: 2px; color: var(--faint); font-size: 8px; }
-    .source-slot { width: 100%; min-height: 32px; padding: 0 9px; overflow: hidden; border-style: dashed; color: var(--muted); background: #0b0b12; font-size: 9px; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
-    .source-slot.ready { color: var(--cyan); }
-    .clear-control { min-height: 30px; padding: 0 9px; color: var(--muted); font-size: 8px; background: transparent; }
 
     .stack { display: grid; gap: 14px; }
     .sub-card { padding: 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-raised); }
@@ -464,7 +458,6 @@
       .section-heading p:last-child { margin-top: 8px; }
       .card.span-4, .card.span-5, .card.span-6, .card.span-7, .card.span-8 { grid-column: 1 / -1; }
       .transform-controls, .export-grid { grid-template-columns: 1fr; }
-      .section-row { grid-template-columns: 70px minmax(0, 1fr) auto; }
       footer { min-height: 38px; }
       footer > span { display: none; }
       .help-steps { grid-template-columns: 1fr; }
@@ -536,89 +529,9 @@
             <strong>Format &amp; Minify</strong>
             <small id="transform-count">0 files</small>
           </button>
-        </section>
-
-        <section class="section" id="build" data-cli-commands="build">
-          <p class="section-loading" role="status">Processing…</p>
-          <div class="section-heading">
-            <div><p class="section-kicker">03 / Assemble</p><h2>Build a cartridge</h2></div>
-            <p>Build from an empty cartridge or an existing local cartridge whose filename matches the output. Replace or clear sections with CLI source files.</p>
-          </div>
-
-          <div class="card span-12" style="margin-bottom:14px">
-            <div class="options" style="justify-content:space-between">
-              <div class="options">
-                <strong style="font-size:11px">Existing output</strong>
-                <span style="color:var(--muted);font-size:10px">The CLI uses a local cartridge as the base only when its filename exactly matches the output filename.</span>
-              </div>
-              <span style="color:var(--green);font-size:9px">◈ Existing PNG label will be preserved</span>
-            </div>
-          </div>
-
-          <div class="build-layout">
-            <article class="card">
-              <div class="card-title"><h3>Cartridge sections</h3><span class="command-tag">replace / retain / clear</span></div>
-              <div class="section-map" id="build-sections">
-                <div class="section-row" data-domain="lua"><div class="section-name">Lua<span>code</span></div><button class="source-slot" type="button">Choose .lua or cartridge…</button><button class="clear-control" type="button">Clear</button><input type="file" accept=".lua,.p8,.p8.png" hidden></div>
-                <div class="section-row" data-domain="gfx"><div class="section-name">GFX<span>sprites</span></div><button class="source-slot" type="button">Retain from matching output</button><button class="clear-control" type="button">Clear</button><input type="file" accept=".p8,.p8.png" hidden></div>
-                <div class="section-row" data-domain="gff"><div class="section-name">GFF<span>flags</span></div><button class="source-slot" type="button">Retain from matching output</button><button class="clear-control" type="button">Clear</button><input type="file" accept=".p8,.p8.png" hidden></div>
-                <div class="section-row" data-domain="map"><div class="section-name">Map<span>tilemap</span></div><button class="source-slot" type="button">Retain from matching output</button><button class="clear-control" type="button">Clear</button><input type="file" accept=".p8,.p8.png" hidden></div>
-                <div class="section-row" data-domain="sfx"><div class="section-name">SFX<span>sounds</span></div><button class="source-slot" type="button">Retain from matching output</button><button class="clear-control" type="button">Clear</button><input type="file" accept=".p8,.p8.png" hidden></div>
-                <div class="section-row" data-domain="music"><div class="section-name">Music<span>patterns</span></div><button class="source-slot" type="button">Retain from matching output</button><button class="clear-control" type="button">Clear</button><input type="file" accept=".p8,.p8.png" hidden></div>
-              </div>
-              <p class="card-copy" style="margin:12px 0 0">A section cannot be cleared and replaced at the same time. Sources may be .p8 or .p8.png; Lua may also use a raw .lua file.</p>
-            </article>
-
-            <div class="stack">
-              <article class="sub-card">
-                <h4>Lua assembly</h4>
-                <div class="segmented" role="group" aria-label="Built Lua handling">
-                  <label><input type="radio" name="build-lua" value="unchanged" checked>Unchanged</label>
-                  <label><input type="radio" name="build-lua" value="format">Formatted</label>
-                  <label><input type="radio" name="build-lua" value="minify">Minified</label>
-                </div>
-                <div class="options" style="margin-top:11px">
-                  <label class="check"><input id="build-keep-all" type="checkbox"> Keep all names</label>
-                  <div class="name-list-picker">
-                    <select id="build-name-list" aria-label="Names to preserve"><option value="">No name list</option></select>
-                    <button class="name-list-help" type="button" popovertarget="build-names-help" aria-label="What is a names list?" style="anchor-name: --build-names-help">?</button>
-                  </div>
-                  <div class="names-popover" id="build-names-help" popover style="position-anchor: --build-names-help">
-                    <strong>What is a names list?</strong>
-                    <p>A names list is a .txt file containing Lua names you want to keep unchanged when minifying. Other names may be shortened to make the code smaller.</p>
-                    <p>Put one name per line, matching its spelling and capitalization:</p>
-                    <pre>player_score
-update_player
-# This is a comment</pre>
-                    <p>Blank lines and lines starting with # are ignored. Add the .txt file using <b>Add Files</b>, then choose it here.</p>
-                    <p>It only affects Minify. <b>Keep all names</b> preserves every name, so a list is unnecessary with that option enabled.</p>
-                  </div>
-                  <label class="check"><input id="build-optimize-tokens" type="checkbox"> Optimize tokens</label>
-                  <p class="card-copy" style="margin:6px 0 0">The CLI does not yet implement token optimization for raw Lua builds.</p>
-                </div>
-              </article>
-
-              <article class="sub-card">
-                <h4>Require modules</h4>
-                <div class="tree" id="module-tree">No Lua modules added.</div>
-                <label class="field" style="margin-top:10px"><span>Lua entry from added files</span><select id="build-entry-module"><option value="">Use Lua section source</option></select></label>
-                <label class="field" style="margin-top:10px"><span>Lookup templates</span><input id="lua-path" type="text" value="?;?.lua"></label>
-                <input id="module-folder-input" type="file" accept=".lua" webkitdirectory multiple hidden>
-                <button id="build-select-modules" type="button" style="width:100%;margin-top:9px">Select module folder</button>
-                <p class="card-copy" style="margin:10px 0 0">Relative paths are retained. Nested dependencies are bundled in memory.</p>
-              </article>
-
-              <article class="sub-card">
-                <h4>Output cartridge</h4>
-                <div class="field-row">
-                  <label class="field"><span>Filename</span><input id="build-output-name" type="text" value="game_build"></label>
-                  <label class="field"><span>Format</span><select id="build-output-format"><option>.p8.png</option><option>.p8</option></select></label>
-                </div>
-                <button class="primary-button" id="preview-build" type="button" style="width:100%;margin-top:12px">Run build</button>
-                <p class="card-copy" id="build-status" style="margin:10px 0 0">Not built yet.</p>
-              </article>
-            </div>
-          </div>
+          <button class="transform-launch" id="open-build" type="button" aria-haspopup="dialog" aria-controls="build-dialog">
+            <strong>Build</strong><small id="build-count">0 files</small>
+          </button>
         </section>
 
         <section class="section" id="export">
@@ -659,6 +572,79 @@ update_player
     <span id="workspace-status">0 cartridges · processing stays on this device</span>
     <nav aria-label="Project links"><a href="README.md">Project notes</a><a href="https://github.com/jslinker/picotool-js">Engine</a><a href="LICENSE">MIT license</a></nav>
   </footer>
+
+  <dialog class="listing-dialog" id="build-dialog" aria-labelledby="build-dialog-title">
+    <div class="help-head"><h2 id="build-dialog-title">Build a cartridge</h2><button id="close-build-dialog" type="button">Close</button></div>
+    <section class="section" id="build" data-cli-commands="build">
+          <p class="section-loading" role="status">Processing…</p>
+          <p class="card-copy">Choose a selected source file for each section. Every build starts with an empty cartridge; sections set to None stay empty.</p>
+
+          <div class="build-layout">
+            <div class="stack">
+            <article class="card">
+              <div class="card-title"><h3>Cartridge sections</h3></div>
+              <p class="card-copy" id="build-scope"></p>
+              <div id="build-sections" class="section-map">
+                <label class="build-section-row"><span>Lua</span><select id="build-source-lua" aria-label="Lua source"><option value="">None</option></select></label>
+                <label class="build-section-row"><span>GFX</span><select id="build-source-gfx" aria-label="GFX source"><option value="">None</option></select></label>
+                <label class="build-section-row"><span>GFF (flags)</span><select id="build-source-gff" aria-label="GFF (flags) source"><option value="">None</option></select></label>
+                <label class="build-section-row"><span>Map</span><select id="build-source-map" aria-label="Map source"><option value="">None</option></select></label>
+                <label class="build-section-row"><span>SFX</span><select id="build-source-sfx" aria-label="SFX source"><option value="">None</option></select></label>
+                <label class="build-section-row"><span>Music</span><select id="build-source-music" aria-label="Music source"><option value="">None</option></select></label>
+                <label class="build-section-row"><span>Names to preserve</span><select id="build-source-names" aria-describedby="build-names-note"><option value="all">Preserve All Names</option><option value="" selected>None</option></select></label>
+              </div>
+              <p class="card-copy" id="build-names-note">Names to preserve is used when minifying. Choose a .txt name list, Preserve All Names, or None.</p>
+              <p class="card-copy">Lua accepts cartridges or .lua files. Other sections accept .p8 and .p8.png cartridges.</p>
+            </article>
+            <article class="card" aria-labelledby="build-modules-title">
+              <div class="card-title" style="justify-content:flex-start;gap:6px">
+                <h3 id="build-modules-title">Lua modules</h3>
+                <button class="name-list-help" type="button" popovertarget="build-modules-help" aria-label="How are Lua modules used?" style="anchor-name: --build-modules-help">?</button>
+              </div>
+              <div class="names-popover" id="build-modules-help" popover style="position-anchor: --build-modules-help">
+                <p>The main Lua file can reference other Lua files as modules using .require(). An attempt to add the selected Lua files will be made using the Modules Lookup Template.</p>
+              </div>
+              <ul id="build-module-list" class="build-module-list"></ul>
+              <p class="card-copy" id="build-modules-empty">No Lua files were selected when Build was opened.</p>
+            </article>
+            </div>
+
+            <div class="stack">
+              <article class="sub-card" aria-labelledby="build-options-title">
+                <h4 id="build-options-title">Build Options</h4>
+                <label class="build-formatting"><span>Text Formatting</span><select id="build-text-formatting">
+                  <option value="unchanged">Unchanged</option>
+                  <option value="format">Formatted</option>
+                  <option value="minify">Minified</option>
+                </select></label>
+                <div class="field" style="margin-top:12px">
+                  <div class="options" style="gap:6px">
+                    <label for="lua-path">Modules Lookup Template</label>
+                    <button class="name-list-help" type="button" popovertarget="build-module-lookup-help" aria-label="How do module lookup templates work?" style="anchor-name: --build-module-lookup-help">?</button>
+                  </div>
+                  <input id="lua-path" type="text" value="?;?.lua">
+                </div>
+                <div class="names-popover" id="build-module-lookup-help" popover style="position-anchor: --build-module-lookup-help">
+                  <strong>Finding Lua modules</strong>
+                  <p>Lookup templates tell the build how to find a selected Lua file referenced by <code>require()</code>. Each <code>?</code> is replaced with the module name. Separate patterns with semicolons.</p>
+                  <p>With the default <code>?;?.lua</code>, <code>require("enemies")</code> tries <code>enemies</code>, then <code>enemies.lua</code>.</p>
+                  <p>Referenced modules are bundled into the cartridge. The default works for most imported Lua files.</p>
+                </div>
+              </article>
+
+              <article class="sub-card">
+                <h4>Output cartridge</h4>
+                <div class="field-row">
+                  <label class="field"><span>Filename</span><input id="build-output-name" type="text" value="game_build"></label>
+                  <label class="field"><span>Format</span><select id="build-output-format"><option>.p8.png</option><option>.p8</option></select></label>
+                </div>
+                <button class="primary-button" id="preview-build" type="button" style="width:100%;margin-top:12px">Build and Download</button>
+                <p class="card-copy" id="build-status" role="status" aria-live="polite" style="margin:10px 0 0">Not built yet.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+  </dialog>
 
   <dialog class="listing-dialog" id="search-dialog" aria-labelledby="search-dialog-title">
     <div class="help-head">
@@ -794,8 +780,8 @@ update_player
       <div class="help-steps">
         <div class="help-step"><b>.p8 · Text cartridge</b><span>Inspect code and statistics, search, format or minify Lua, and export a cartridge. Use cartridges as section sources in Build.</span></div>
         <div class="help-step"><b>.p8.png · Image cartridge</b><span>A PICO-8 cartridge encoded in a PNG image. Inspect, transform, and use it in Build like a text cartridge. Ordinary .png images are not supported.</span></div>
-        <div class="help-step"><b>.lua · Lua source</b><span>Choose an added Lua file as the Build entry or use it as a require() module. For nested module paths, use Select module folder in Build.</span></div>
-        <div class="help-step"><b>.txt · Names to preserve</b><span>Select this file under Names to preserve when minifying in Transform or Build. List one identifier per line; blank lines and lines starting with # are ignored.</span></div>
+        <div class="help-step"><b>.lua · Lua source</b><span>Import Lua files through Add Files, then select them before opening Build. Choose one as the main Lua source; other selected Lua files are available to require().</span></div>
+        <div class="help-step"><b>.txt · Names to preserve</b><span>Choose this file under Names to preserve in Format &amp; Minify, or select it before opening Build. List one identifier per line; blank lines and lines starting with # are ignored.</span></div>
       </div>
       <div class="help-foot"><span>◆ Files stay on this device. Removing a file only removes it from this workspace.</span></div>
     </div>

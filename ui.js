@@ -3,7 +3,7 @@
 
   const api = window.PicoToolWeb;
   const state = {
-    selected: new Set(), selectionAnchor: null, cartridges: [], active: -1, supportFiles: [], modules: [], buildSources: {}, outputs: [],
+    selected: new Set(), selectionAnchor: null, cartridges: [], active: -1, supportFiles: [], modules: [], buildFiles: [], outputs: [],
   };
 
   const byId = (id) => document.getElementById(id);
@@ -125,6 +125,7 @@
     });
     const count = selectedCartridges().length;
     byId("search-count").textContent = `${workingFiles().length} files`;
+    byId("build-count").textContent = `${state.selected.size} files`;
     byId("transform-count").textContent = `${count} files`;
     byId("open-transform").disabled = count === 0;
     const active = current();
@@ -149,7 +150,7 @@
   }
 
   function renderSupportFiles() {
-    for (const id of ["transform-name-list", "build-name-list"]) {
+    for (const id of ["transform-name-list"]) {
       const select = byId(id);
       const value = select.value;
       select.innerHTML = '<option value="">No name list</option>';
@@ -160,20 +161,6 @@
         select.append(option);
       });
       select.value = state.supportFiles.some((file) => file.name === value) ? value : "";
-    }
-    byId("module-tree").textContent = state.modules.length
-      ? state.modules.map((file) => file.name).join("\n") : "No Lua modules added.";
-    const entry = byId("build-entry-module");
-    if (entry) {
-      const value = entry.value;
-      entry.innerHTML = '<option value="">Use Lua section source</option>';
-      state.modules.filter((file) => file.name.endsWith(".lua")).forEach((file) => {
-        const option = document.createElement("option");
-        option.value = file.name;
-        option.textContent = file.name;
-        entry.append(option);
-      });
-      entry.value = state.modules.some((file) => file.name === value) ? value : "";
     }
   }
 
@@ -279,10 +266,10 @@
     refreshInspection().catch((error) => announce(error.message, true));
   }
 
-  async function addFiles(files, nameFor = (file) => file.name) {
+  async function addFiles(files) {
     const rejected = [];
     for (const file of files) {
-      const name = nameFor(file);
+      const name = file.name;
       if (!/\.(?:p8|p8\.png|lua|txt)$/.test(name)) { rejected.push(name); continue; }
       const stored = await storedFile(file, name);
       state.selected.add(name);
@@ -406,26 +393,75 @@
     renderExports();
   }
 
+  const buildRoles = [["lua", "Lua"], ["gfx", "GFX"], ["gff", "GFF (flags)"], ["map", "Map"], ["sfx", "SFX"], ["music", "Music"]];
+
+  function renderBuildModules() {
+    const mainIndex = byId("build-source-lua").value;
+    const main = mainIndex === "" ? undefined : state.buildFiles[Number(mainIndex)];
+    const modules = state.buildFiles.filter((file) => /\.lua$/i.test(file.name))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+    const list = byId("build-module-list");
+    list.replaceChildren();
+    byId("build-modules-empty").hidden = modules.length > 0;
+    for (const file of modules) {
+      const row = document.createElement("li");
+      const isMain = file === main;
+      row.className = `build-module${isMain ? " is-main" : ""}`;
+      row.textContent = file.name;
+      row.tabIndex = 0;
+      row.title = isMain ? "Not used as a module because this is the main Lua file."
+        : "Available as a module when referenced by require().";
+      row.setAttribute("aria-label", `${file.name}. ${row.title}`);
+      list.append(row);
+    }
+  }
+
+  function openBuild() {
+    state.buildFiles = [...workingFiles(), ...state.modules, ...state.supportFiles]
+      .filter((file) => state.selected.has(file.name))
+      .map((file) => ({ name: file.name, bytes: file.bytes.slice() }));
+    for (const [domain] of [...buildRoles, ["names"]]) {
+      const picker = byId(`build-source-${domain}`);
+      picker.replaceChildren();
+      const choices = [];
+      state.buildFiles.forEach((file, index) => {
+        const compatible = domain === "names" ? /\.txt$/i.test(file.name)
+          : /\.p8(?:\.png)?$/i.test(file.name) || (domain === "lua" && /\.lua$/i.test(file.name));
+        if (compatible) choices.push([String(index), file.name]);
+      });
+      choices.sort((a, b) => a[1].localeCompare(b[1], undefined, { sensitivity: "base" }) || a[1].localeCompare(b[1]));
+      const defaultValue = choices[0]?.[0] || "";
+      if (domain === "names") choices.push(["all", "Preserve All Names"]);
+      choices.push(["", "None"]);
+      for (const [value, label] of choices) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        picker.append(option);
+      }
+      picker.value = defaultValue;
+    }
+    renderBuildModules();
+    byId("build-scope").textContent = `${state.buildFiles.length} selected file${state.buildFiles.length === 1 ? "" : "s"} available. The same cartridge can supply multiple sections.`;
+    byId("build-status").textContent = "Not built yet.";
+    byId("build-status").style.color = "";
+    byId("build-dialog").showModal();
+  }
+
   async function previewBuild() {
     const sources = {};
-    for (const [domain, file] of Object.entries(state.buildSources)) if (file) sources[domain] = file;
-    const empty = [...byId("build-sections").querySelectorAll(".section-row[data-cleared='true']")]
-      .map((row) => row.dataset.domain);
-    const supportIndex = byId("build-name-list").value;
-    const keepNamesFile = supportIndex === "" ? undefined : state.supportFiles.find((file) => file.name === supportIndex);
-    const selectedEntry = byId("build-entry-module").value;
-    if (selectedEntry) {
-      const file = state.modules.find((module) => module.name === selectedEntry);
-      if (file) sources.lua = file;
+    for (const [domain] of buildRoles) {
+      const value = byId(`build-source-${domain}`).value;
+      if (value !== "" && state.buildFiles[Number(value)]) sources[domain] = state.buildFiles[Number(value)];
     }
+    const nameIndex = byId("build-source-names").value;
+    const keepNamesFile = nameIndex === "" || nameIndex === "all" ? undefined : state.buildFiles[Number(nameIndex)];
     const stem = byId("build-output-name").value.replace(/\.(?:p8(?:\.png)?)$/i, "") || "game_build";
     const outputName = `${stem}${byId("build-output-format").value}`;
-    const base = [...state.outputs].reverse().find((file) => file.name === outputName)
-      || state.cartridges.map((item) => item.working).find((file) => file.name === outputName);
-    const response = await api.cli.build({ base, sources, empty, modules: state.modules,
-      luaPath: byId("lua-path").value, luaMode: selectedValue("build-lua"),
-      optimizeTokens: byId("build-optimize-tokens").checked,
-      keepAllNames: byId("build-keep-all").checked,
+    const modules = state.buildFiles.filter((file) => /\.lua$/i.test(file.name) && file !== sources.lua);
+    const response = await api.cli.build({ sources, modules,
+      luaPath: byId("lua-path").value, luaMode: byId("build-text-formatting").value || "unchanged",
+      keepAllNames: nameIndex === "all",
       keepNamesBytes: keepNamesFile?.bytes,
       outputName });
     byId("build-status").textContent = response.ok
@@ -435,6 +471,7 @@
     if (response.ok) {
       state.outputs = state.outputs.filter((file) => file.name !== response.results[0].output.name);
       state.outputs.push(response.results[0].output);
+      download(response.results[0].output.name, response.results[0].output.bytes);
       renderExports();
     } else {
       renderExports();
@@ -458,17 +495,6 @@
     try { await addFiles([...event.dataTransfer.files]); }
     catch (error) { announce(error.message, true); }
   });
-  byId("build-select-modules").addEventListener("click", () => byId("module-folder-input").click());
-  byId("module-folder-input").addEventListener("change", async (event) => {
-    const files = [...event.target.files].filter((file) => file.name.endsWith(".lua"));
-    try {
-      await addFiles(files, (file) => {
-        const path = file.webkitRelativePath || file.name;
-        return path.includes("/") ? path.slice(path.indexOf("/") + 1) : path;
-      });
-    } catch (error) { announce(error.message, true); }
-    finally { event.target.value = ""; }
-  });
   document.querySelectorAll('input[name="lua-view"], #lua-line-numbers, #lua-pure, input[name="structure"]').forEach((input) => input.addEventListener("change", () => { updateListingOptions(); refreshInspection(); }));
   function updateListingOptions() {
     byId("lua-pure").disabled = selectedValue("lua-view") === "raw";
@@ -487,9 +513,32 @@
       if (runningSections.has(section)) return;
       runningSections.add(section);
       setBusy(section, true);
-      try { await action(); }
-      catch (error) { announce(error.message, true); }
-      finally { runningSections.delete(section); setBusy(section, false); }
+      if (section === "build") {
+        byId("preview-build").disabled = true;
+        byId("preview-build").textContent = "Building…";
+        byId("build-status").textContent = "Building cartridge…";
+        byId("build-status").style.color = "";
+      }
+      try {
+        if (section === "build") {
+          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        }
+        await action();
+      }
+      catch (error) {
+        if (section === "build") {
+          byId("build-status").textContent = error.message;
+          byId("build-status").style.color = "var(--pink)";
+        } else announce(error.message, true);
+      }
+      finally {
+        runningSections.delete(section);
+        setBusy(section, false);
+        if (section === "build") {
+          byId("preview-build").disabled = false;
+          byId("preview-build").textContent = "Build and Download";
+        }
+      }
     };
   }
   byId("open-search").addEventListener("click", () => {
@@ -584,23 +633,9 @@
     for (const file of state.outputs) download(file.name, file.bytes);
   });
   byId("preview-build").addEventListener("click", runWithLoading("build", previewBuild));
-  byId("build-sections").querySelectorAll(".section-row").forEach((row) => {
-    const input = row.querySelector('input[type="file"]');
-    const source = row.querySelector(".source-slot");
-    const clear = row.querySelector(".clear-control");
-    source.addEventListener("click", () => input.click());
-    input.addEventListener("change", async () => {
-      if (!input.files[0]) return;
-      state.buildSources[row.dataset.domain] = await storedFile(input.files[0]);
-      row.dataset.cleared = "false"; source.textContent = input.files[0].name; source.classList.add("ready"); clear.textContent = "Clear";
-    });
-    clear.addEventListener("click", () => {
-      const cleared = row.dataset.cleared !== "true";
-      row.dataset.cleared = String(cleared);
-      if (cleared) { delete state.buildSources[row.dataset.domain]; source.textContent = "Section will be cleared"; source.classList.remove("ready"); clear.textContent = "Undo"; }
-      else { source.textContent = row.dataset.domain === "lua" ? "Choose .lua or cartridge…" : "Retain from matching output"; clear.textContent = "Clear"; }
-    });
-  });
+  byId("build-source-lua").addEventListener("change", renderBuildModules);
+  byId("open-build").addEventListener("click", openBuild);
+  byId("close-build-dialog").addEventListener("click", () => byId("build-dialog").close());
 
   renderAll();
 })();

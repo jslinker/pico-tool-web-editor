@@ -33,14 +33,14 @@ Cartridge commands accept `.p8` and `.p8.png` inputs where supported by the CLI.
 | `luafmt` | Format Lua; `--indentwidth N` and `--overwrite` (for `.p8`). |
 | `build` | Create/update one cartridge from CLI-selected sources; supports `--lua`, `--gfx`, `--gff`, `--map`, `--sfx`, `--music`, matching `--empty-*` flags, `--lua-path`, `--lua-format`, `--lua-minify`, and keep-name options. `--optimize-tokens` is accepted but unimplemented for raw `.lua` sources. |
 
-The browser interface uses the engine's command API with the same command names, flags, source selections, and output filename rules. Inspection commands display their textual results. Rewrite and build commands return downloadable output files. `luafmt --overwrite` retains the CLI's output filename behavior, while browser downloads do not modify the user's local input file. For `build`, an already selected cartridge is used as the base only when its filename exactly matches the requested output filename.
+The browser interface uses the engine's command API with the same command names, flags, source selections, and output filename rules. Inspection commands display their textual results. Rewrite and build commands return downloadable output files. `luafmt --overwrite` retains the CLI's output filename behavior, while browser downloads do not modify the user's local input file. The Build modal always starts with an empty cartridge and uses only the explicitly chosen section sources, even if the output filename matches an imported cartridge or previous result.
 
 ## Implementation status
 
 - [x] Preserve P8SCII glyphs in AST parsing and support integer division and PICO-8 shifts; verify local cartridges against the CLI and retain token class names in the browser bundle.
 - [x] Expose each of the ten CLI commands through the browser command API.
 - [x] Map CLI command options, source files, and output naming into browser controls; default rewrite remains available through the API.
-- [x] Names-list help popovers beside the Minify and Build pickers explain preservation, text-file syntax, and importing a list.
+- [x] Names-list help popover beside the Minify picker explain preservation, text-file syntax, and importing a list.
 - [x] Compact, side-by-side Search and Format & Minify buttons. Search opens a modal with regular-expression controls, filename-only mode, and results across all added cartridges.
 - [x] Open Format & Minify from a selection-count button, preview each selected cartridge with automatically updated options, and copy Lua or save Lua/cartridges from its share menu.
 - [x] Open a single file viewer from the square eye icon above each file’s remove icon (on hover, keyboard focus, or touch). Cartridges offer Lua, raw Lua, tokens, AST, listing options, and Lua downloads; Lua and text support files show their contents. Viewing a file preserves the batch selection.
@@ -49,9 +49,12 @@ The browser interface uses the engine's command API with the same command names,
 - [x] Cache calculations in memory using exact file contents and all request options, with per-cartridge Stats reuse, bounded retention, and invalidation when the engine adapter changes. Failed calculations are retried.
 - [x] Show independent section loading states and ignore outdated inspection results after selection changes. Format & Minify yields a paint frame before processing so its modal and spinner appear first, including after option changes. Engine processing remains on the main thread; loading indicators do not make computation nonblocking.
 - [x] Full-width tool rows and selection-driven Stats table: one row per selected cartridge, explicit filenames, and CSV export of the same selection.
-- [x] Unified Add Files picker and drop handling for `.p8`, `.p8.png`, `.lua`, and `.txt`, with a removable file list and file-type help. Lua sources populate Build entries/modules; text files populate names-to-preserve choices.
+- [x] Unified Add Files picker and drop handling for `.p8`, `.p8.png`, `.lua`, and `.txt`, with a removable file list and file-type help. Lua sources are available as Build sources/modules; text files preserve names.
 - [x] Keep local cartridge inputs available across commands without mutating their bytes.
+- [x] Lua modules appear below Cartridge sections using the selected-file snapshot; the main Lua file is greyed out with an explanation and excluded from module inputs. Lua sources and modules are imported through the main Add Files button.
+- [x] Build toolbar button opens a modal with a snapshot of selected files and one source dropdown per section. Each dropdown lists compatible selected files alphabetically, defaults to the first file, and ends with None. A cartridge can supply multiple sections; None leaves a section empty. Build and Download displays a loading state, prevents duplicate builds, automatically downloads a successful build, and keeps it in Export results. Build Options contains the Text Formatting dropdown (unchanged, formatted, or minified Lua) and Modules Lookup Template, with a help popover explaining require() filename matching. A Names to preserve row alongside the section sources accepts a selected text file, Preserve All Names, or None for minification.
 - [x] Include static-site build and GitHub Pages deployment workflow.
+- [ ] Token optimization: the engine accepts `--optimize-tokens` but throws an unimplemented-feature error for raw `.lua` sources and has no effect on cartridge sources. The Build UI omits this option until engine support is implemented.
 - [ ] Verify import → command → download on the deployed site after the coordinated engine revision is published and pinned.
 
 The committed `vendor/picotool.js` bundle was built from the coordinated sibling `../picotool-js` checkout. The package dependency and lockfile still pin the last published engine revision, which does not include all browser commands; a clean dependency install alone cannot regenerate this bundle yet. Publish the engine revision and update the dependency pin before treating that source-to-bundle path as reproducible.

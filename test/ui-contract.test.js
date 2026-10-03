@@ -38,7 +38,7 @@ const bytesFile = (name, bytes) => ({ name, webkitRelativePath: name,
 function harness(overrides = {}, useCache = false, requestFrame = (callback) => setImmediate(callback)) {
   const elements = new Map();
   const get = (id) => { if (!elements.has(id)) elements.set(id, new Element(id)); return elements.get(id); };
-  const radios = new Map([["transform", "luamin"], ["lua-view", "normalized"], ["structure", "tokens"], ["build-lua", "unchanged"]]);
+  const radios = new Map([["transform", "luamin"], ["lua-view", "normalized"], ["structure", "tokens"]]);
   const calls = []; const downloads = []; const copied = [];
   const clipboard = { async writeText(text) { copied.push(text); } };
   const changeHandlers = new Map();
@@ -113,26 +113,21 @@ test("UI exposes format and minify in a dialog and omits old editing controls", 
   }
 });
 
-test("build uses only a selected cartridge whose name matches the output filename", async () => {
+test("build never inherits an imported cartridge or previous output with the same filename", async () => {
   const h = harness();
   const input = h.get("file-input");
-  input.files = [bytesFile("unrelated.p8", [1]), bytesFile("target.p8", [2])];
+  input.files = [bytesFile("target.p8", [2])];
   await input.handlers.change({ target: input });
+  await h.get("open-build").click();
+  for (const domain of ["lua", "gfx", "gff", "map", "sfx", "music"]) h.get(`build-source-${domain}`).value = "";
   h.get("build-output-name").value = "target";
   h.get("build-output-format").value = ".p8";
-  await h.get("preview-build").click();
-  const matching = h.calls.find(([command]) => command === "build")[1];
-  assert.equal(matching.base.name, "target.p8");
-
-  h.get("build-output-name").value = "new-output";
-  await h.get("preview-build").click();
-  const requests = h.calls.filter(([command]) => command === "build");
-  assert.equal(requests[1][1].base, undefined);
-
-  h.get("build-output-name").value = "target";
-  await h.get("preview-build").click();
-  const latest = h.calls.filter(([command]) => command === "build").at(-1)[1];
-  assert.deepEqual(Array.from(latest.base.bytes), [8]);
+  for (let i = 0; i < 2; i++) {
+    await h.get("preview-build").click();
+    const request = h.calls.filter(([command]) => command === "build").at(-1)[1];
+    assert.equal(request.base, undefined);
+    assert.equal(Object.keys(request.sources).length, 0);
+  }
 });
 
 test("search displays successful matches alongside a per-cartridge CLI error", async () => {
@@ -174,28 +169,28 @@ test("inspection forwards raw listing flags and CSV action invokes stats with cs
   assert.deepEqual(h.downloads.map(([name]) => name), ["picotool-stats.csv", "game.lua"]);
 });
 
-test("bundled engine resolves nested build modules and reports its token-optimization error", async () => {
+test("bundled engine resolves chained modules imported through Add Files", async () => {
   const engineContext = vm.createContext({ TextEncoder, TextDecoder, Uint8Array, ArrayBuffer, DataView, console });
   vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "vendor", "picotool.js"), "utf8"), engineContext);
   const h = harness(engineContext.PicotoolJS.createBrowserCommands());
-  const source = (name, relativePath, contents) => ({ name, webkitRelativePath: relativePath,
+  const source = (name, contents) => ({ name,
     async arrayBuffer() { return new TextEncoder().encode(contents).buffer; } });
-  const modules = h.get("module-folder-input");
-  modules.files = [source("main.lua", "project/src/main.lua", 'local m=require("mod")\nprint(m)\n'),
-    source("mod.lua", "project/src/mod.lua", 'return require("helper")\n'),
-    source("helper.lua", "project/src/helper.lua", "return 7\n")];
+  const modules = h.get("file-input");
+  modules.files = [source("main.lua", 'local m=require("mod")\nprint(m)\n'),
+    source("mod.lua", 'return require("helper")\n'),
+    source("helper.lua", "return 7\n")];
   await modules.handlers.change({ target: modules });
-  h.get("build-entry-module").value = "src/main.lua";
+  await h.get("open-build").click();
+  h.get("build-source-lua").value = "0";
   h.get("lua-path").value = "?;?.lua";
   h.get("build-output-name").value = "nested";
   h.get("build-output-format").value = ".p8";
   await h.get("preview-build").click();
   assert.match(h.get("build-status").textContent, /^Ready/);
+  assert.equal(h.downloads.length, 1);
+  assert.equal(h.downloads[0][0], "nested.p8");
   assert.equal(h.get("export-list").children.length, 1);
-  h.get("build-optimize-tokens").checked = true;
-  await h.get("preview-build").click();
-  assert.match(h.get("build-status").textContent, /optimize_tokens not yet implemented/);
-  assert.equal(h.get("export-list").children.length, 1);
+
 });
 
 
@@ -209,24 +204,23 @@ test("mixed files route to cartridges, Lua modules and name lists; removal clear
   assert.match(h.get("workspace-status").textContent, /Not added: photo.png/);
   assert.equal(input.value, "");
   h.get("transform-name-list").value = "keep.txt";
-  h.get("build-name-list").value = "keep.txt";
-  h.get("build-entry-module").value = "main.lua";
+
   // Removing an earlier name list must not change the selected list.
   h.get("file-list").children[2].children[1].handlers.click();
   assert.equal(h.get("transform-name-list").value, "keep.txt");
   await h.get("open-transform").click();
   assert.deepEqual(Array.from(h.calls.find(([command]) => command === "luamin")[1].keepNamesBytes), [4]);
+  await h.get("open-build").click();
+  h.get("build-source-lua").value = "1";
   h.get("build-output-name").value = "out";
   h.get("build-output-format").value = ".p8";
   await h.get("preview-build").click();
   const build = h.calls.find(([command]) => command === "build")[1];
   assert.equal(build.sources.lua.name, "main.lua");
-  assert.equal(build.modules.length, 1);
+  assert.equal(build.modules.length, 0);
   h.get("file-list").children[1].children[1].handlers.click();
-  assert.equal(h.get("build-entry-module").value, "");
   h.get("file-list").children[1].children[1].handlers.click();
   assert.equal(h.get("transform-name-list").value, "");
-  assert.equal(h.get("build-name-list").value, "");
   h.get("file-list").children[0].children[1].handlers.click();
   assert.equal(h.get("active-file-name").textContent, "No cartridge selected");
   assert.equal(h.get("lua-preview").textContent, "Select a cartridge to view this listing.");
@@ -524,4 +518,163 @@ test("closing the transform modal before paint skips pending processing", async 
   await opening;
   assert.equal(h.calls.filter(([command]) => command === "luamin").length, 0);
   assert.equal(h.get("transform-section")["aria-busy"], "false");
+});
+
+
+test("Build section dropdowns filter a selection snapshot and reuse a cartridge across sections", async () => {
+  const h = harness();
+  const input = h.get("file-input");
+  input.files = [bytesFile("art.p8", [1]), bytesFile("image.p8.png", [4]), bytesFile("main.lua", [2]), bytesFile("names.txt", [3])];
+  await input.handlers.change({ target: input });
+  await h.get("open-build").click();
+  assert.equal(h.get("build-dialog").open, true);
+  const options = (domain) => h.get(`build-source-${domain}`).children.map((option) => option.textContent);
+  assert.deepEqual(options("lua"), ["art.p8", "image.p8.png", "main.lua", "None"]);
+  for (const domain of ["gfx", "gff", "map", "sfx", "music"]) {
+    assert.deepEqual(options(domain), ["art.p8", "image.p8.png", "None"]);
+  }
+  assert.deepEqual(options("names"), ["names.txt", "Preserve All Names", "None"]);
+  // Later workspace changes do not change the captured sources.
+  h.get("file-list").children[0].children[0].handlers.click();
+  input.files = [bytesFile("art.p8", [9])];
+  await input.handlers.change({ target: input });
+  for (const domain of ["lua", "gfx", "sfx"]) h.get(`build-source-${domain}`).value = "0";
+  h.get("build-source-map").value = "";
+  h.get("build-source-music").value = "";
+  h.get("build-source-names").value = "3";
+  h.get("build-output-name").value = "out";
+  h.get("build-output-format").value = ".p8";
+  await h.get("preview-build").click();
+  const request = h.calls.filter(([command]) => command === "build").at(-1)[1];
+  for (const domain of ["lua", "gfx", "sfx"]) {
+    assert.equal(request.sources[domain].name, "art.p8");
+    assert.deepEqual(Array.from(request.sources[domain].bytes), [1]);
+  }
+  assert.equal(request.sources.map, undefined);
+  assert.equal(request.sources.music, undefined);
+  assert.deepEqual(Array.from(request.keepNamesBytes), [3]);
+  h.get("build-source-lua").value = "2";
+  await h.get("preview-build").click();
+  assert.equal(h.calls.filter(([command]) => command === "build").at(-1)[1].sources.lua.name, "main.lua");
+  await h.get("close-build-dialog").click();
+  await h.get("open-build").click();
+  assert.deepEqual(options("lua"), ["art.p8", "None"]);
+  assert.deepEqual(options("names"), ["Preserve All Names", "None"]);
+  assert.equal(h.get("build-source-lua").value, "0");
+});
+
+test("build dropdowns sort compatible filenames alphabetically and default to the first or None", async () => {
+  const h = harness();
+  await h.get("open-build").click();
+  for (const domain of ["lua", "gfx", "gff", "map", "sfx", "music", "names"]) {
+    assert.deepEqual(h.get(`build-source-${domain}`).children.map((option) => option.textContent), domain === "names" ? ["Preserve All Names", "None"] : ["None"]);
+    assert.equal(h.get(`build-source-${domain}`).value, "");
+  }
+  const input = h.get("file-input");
+  input.files = [bytesFile("zebra.p8", [1]), bytesFile("Alpha.p8.png", [2]), bytesFile("aardvark.lua", [3]),
+    bytesFile("z.txt", [4]), bytesFile("a.txt", [5])];
+  await input.handlers.change({ target: input });
+  await h.get("open-build").click();
+  assert.deepEqual(h.get("build-source-lua").children.map((option) => option.textContent), ["aardvark.lua", "Alpha.p8.png", "zebra.p8", "None"]);
+  for (const domain of ["gfx", "gff", "map", "sfx", "music"]) {
+    assert.deepEqual(h.get(`build-source-${domain}`).children.map((option) => option.textContent), ["Alpha.p8.png", "zebra.p8", "None"]);
+    assert.equal(h.get(`build-source-${domain}`).value, "1");
+  }
+  assert.deepEqual(h.get("build-source-names").children.map((option) => option.textContent), ["a.txt", "z.txt", "Preserve All Names", "None"]);
+  assert.equal(h.get("build-source-names").value, "4");
+  assert.equal(h.get("build-source-lua").value, "2");
+});
+
+test("build paints loading before processing, blocks duplicate runs, and restores its button after errors", async () => {
+  const frames = [];
+  let finishBuild;
+  const requests = [];
+  const h = harness({ build(request) {
+    requests.push(request);
+    return new Promise((resolve, reject) => { finishBuild = { resolve, reject }; });
+  } }, false, (callback) => frames.push(callback));
+  h.get("build-text-formatting").value = "minify";
+  h.get("build-output-name").value = "loading";
+  h.get("build-output-format").value = ".p8";
+  const running = h.get("preview-build").click();
+  assert.equal(h.get("build")["aria-busy"], "true");
+  assert.equal(h.get("preview-build").disabled, true);
+  assert.equal(h.get("preview-build").textContent, "Building…");
+  assert.equal(h.get("build-status").textContent, "Building cartridge…");
+  assert.equal(requests.length, 0);
+  await h.get("preview-build").click();
+  assert.equal(frames.length, 1);
+  frames.shift()();
+  frames.shift()();
+  await Promise.resolve();
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].luaMode, "minify");
+  assert.equal(h.get("preview-build").disabled, true);
+  finishBuild.reject(new Error("Build failed"));
+  await running;
+  assert.equal(h.get("build")["aria-busy"], "false");
+  assert.equal(h.get("preview-build").disabled, false);
+  assert.equal(h.get("preview-build").textContent, "Build and Download");
+  assert.equal(h.get("build-status").textContent, "Build failed");
+  assert.equal(h.downloads.length, 0);
+  h.get("build-text-formatting").value = "format";
+  const retry = h.get("preview-build").click();
+  frames.shift()();
+  frames.shift()();
+  await Promise.resolve();
+  assert.equal(requests[1].luaMode, "format");
+  finishBuild.resolve({ ok: true, results: [{ output: { name: "loading.p8", bytes: Uint8Array.from([1]) }, stats: { tokenCount: 1 } }] });
+  await retry;
+  assert.equal(h.get("build")["aria-busy"], "false");
+  assert.equal(h.get("preview-build").disabled, false);
+  assert.equal(h.get("preview-build").textContent, "Build and Download");
+  assert.equal(h.downloads.length, 1);
+});
+
+test("build names picker routes Preserve All Names, a name list, and None independently", async () => {
+  const h = harness();
+  const input = h.get("file-input");
+  input.files = [bytesFile("keep.txt", [1, 2])];
+  await input.handlers.change({ target: input });
+  await h.get("open-build").click();
+  h.get("build-text-formatting").value = "minify";
+  h.get("build-output-name").value = "names";
+  h.get("build-output-format").value = ".p8";
+  for (const choice of ["all", "0", ""]) {
+    h.get("build-source-names").value = choice;
+    await h.get("preview-build").click();
+    const request = h.calls.filter(([command]) => command === "build").at(-1)[1];
+    assert.equal(request.keepAllNames, choice === "all");
+    if (choice === "0") assert.deepEqual(Array.from(request.keepNamesBytes), [1, 2]);
+    else assert.equal(request.keepNamesBytes, undefined);
+  }
+});
+
+test("build lists only selected Lua snapshots and updates the main-file module exclusion", async () => {
+  const h = harness();
+  const input = h.get("file-input");
+  input.files = [bytesFile("a.lua", [1]), bytesFile("b.lua", [2]), bytesFile("c.lua", [3])];
+  await input.handlers.change({ target: input });
+  h.get("file-list").children[2].children[0].handlers.click({ ctrlKey: true });
+  await h.get("open-build").click();
+  const rows = () => h.get("build-module-list").children;
+  assert.deepEqual(rows().map((row) => row.textContent), ["a.lua", "b.lua"]);
+  assert.match(rows()[0].className, /is-main/);
+  assert.match(rows()[0].title, /main Lua file/);
+  h.get("build-source-lua").value = "1";
+  h.get("build-source-lua").handlers.change();
+  assert.doesNotMatch(rows()[0].className, /is-main/);
+  assert.match(rows()[1].className, /is-main/);
+  input.files = [bytesFile("later.lua", [4])];
+  await input.handlers.change({ target: input });
+  assert.deepEqual(rows().map((row) => row.textContent), ["a.lua", "b.lua"]);
+  h.get("build-output-name").value = "modules";
+  h.get("build-output-format").value = ".p8";
+  await h.get("preview-build").click();
+  const request = h.calls.filter(([command]) => command === "build").at(-1)[1];
+  assert.equal(request.sources.lua.name, "b.lua");
+  assert.deepEqual(Array.from(request.modules, (file) => file.name), ["a.lua"]);
+  h.get("build-source-lua").value = "";
+  h.get("build-source-lua").handlers.change();
+  assert.ok(rows().every((row) => !row.className.includes("is-main")));
 });
