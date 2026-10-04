@@ -167,7 +167,6 @@
       transition: border-color .15s ease, transform .15s ease;
     }
     .patreon-button:hover { border-color: var(--pink); transform: translateY(-1px); }
-    .local-status { color: var(--green); font-size: 9px; }
 
     .privacy-note {
       padding: 20px;
@@ -469,7 +468,7 @@
     @media (max-width: 760px) {
       body { height: auto; min-height: 100vh; padding: 0; display: block; overflow: visible; }
       .app-header { position: sticky; top: 0; height: 52px; border-radius: 0; }
-      .window-controls, .document-title, .local-status { display: none; }
+      .window-controls, .document-title { display: none; }
       .workspace { display: block; border-inline: 0; border-radius: 0; }
       .sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
       .file-list { grid-template-columns: 1fr 1fr; }
@@ -507,7 +506,6 @@
     </a>
       <span class="document-title"><b id="active-file-name">No cartridge selected</b> <span id="copy-state">Local workspace</span></span>
     <span class="header-actions">
-      <span class="local-status">◆ On-device</span>
       <a class="patreon-button" href="https://www.patreon.com/c/josephslinker" target="_blank" rel="noopener noreferrer">Support me on Patreon</a>
       <button type="button" onclick="document.getElementById('help').showModal()">? Help</button>
     </span>
