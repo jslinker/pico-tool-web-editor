@@ -11,4 +11,6 @@ for (const filename of ["picotool.js", "picotool.js.map"]) {
   await cp(new URL(`../vendor/${filename}`, import.meta.url), new URL(`vendor/${filename}`, outputDirectory));
 }
 
+await cp(new URL("../assets/", import.meta.url), new URL("assets/", outputDirectory), { recursive: true });
+
 console.log("Prepared dist/ for GitHub Pages");

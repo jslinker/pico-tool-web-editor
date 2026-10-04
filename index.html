@@ -6,6 +6,22 @@
   <meta name="color-scheme" content="dark">
   <meta name="description" content="A local-first browser workspace for inspecting, transforming, and building PICO-8 cartridges.">
   <title>PICO Tool — Cartridge Workshop</title>
+  <link rel="canonical" href="https://jslinker.github.io/pico-tool-web-editor/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="PICO Tool">
+  <meta property="og:title" content="PICO Tool — Cartridge Workshop">
+  <meta property="og:description" content="Inspect, format, and build PICO-8 cartridges right in your browser. Local files stay on your device.">
+  <meta property="og:url" content="https://jslinker.github.io/pico-tool-web-editor/">
+  <meta property="og:image" content="https://jslinker.github.io/pico-tool-web-editor/assets/social-card.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1733">
+  <meta property="og:image:height" content="907">
+  <meta property="og:image:alt" content="PICO Tool Cartridge Workshop — Inspect. Format. Build. A retro cartridge with code and sprite tiles on a dark background.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="PICO Tool — Cartridge Workshop">
+  <meta name="twitter:description" content="Inspect, format, and build PICO-8 cartridges right in your browser. Local files stay on your device.">
+  <meta name="twitter:image" content="https://jslinker.github.io/pico-tool-web-editor/assets/social-card.png">
+  <meta name="twitter:image:alt" content="PICO Tool Cartridge Workshop — Inspect. Format. Build. A retro cartridge with code and sprite tiles on a dark background.">
   <style>
     :root {
       --ink: #f7f4e8;
@@ -62,6 +78,8 @@
       transition: border-color .15s ease, transform .15s ease, background .15s ease;
     }
 
+    button:disabled { cursor: not-allowed; opacity: .55; }
+    button:disabled:hover { transform: none; border-color: var(--line-bright); }
     button:hover { border-color: var(--pink); transform: translateY(-1px); }
 
     button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
@@ -294,6 +312,7 @@
     .name-list-help { flex: 0 0 22px; width: 22px; min-height: 22px; padding: 0; border-radius: 50%; font-size: 12px; }
     .names-popover { width: min(300px, calc(100vw - 32px)); padding: 14px; border: 1px solid var(--line-bright); border-radius: 8px; color: var(--ink); background: var(--panel-raised); box-shadow: 0 8px 24px #0008; font: 12px/1.5 system-ui, sans-serif; }
     .names-popover p { margin: 8px 0 0; }
+    .names-popover > p:first-child { margin-top: 0; }
     .names-popover pre { margin: 8px 0; padding: 8px; background: var(--panel); border-radius: 4px; font-size: 11px; }
     @supports (position-area: bottom) {
       .names-popover { inset: auto; margin: 6px; position-area: bottom span-right; position-try-fallbacks: flip-block, flip-inline; }
@@ -367,40 +386,38 @@
     .delta { display: flex; gap: 10px; color: var(--muted); font-size: 9px; }
     .delta strong { color: var(--green); }
 
-    #build-dialog { width: min(1100px, calc(100vw - 36px)); }
+    #build-dialog { width: min(1040px, calc(100vw - 36px)); }
+    .build-body { padding: 20px; }
+    .build-body > .card-copy { margin: 0 0 20px; }
+    .build-layout { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+    .build-stack { display: grid; gap: 16px; min-width: 0; align-content: start; }
+    .build-panel { display: grid; gap: 16px; min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+    .build-panel .card-copy { margin: 0; }
+    .build-panel .panel-heading { display: flex; align-items: center; gap: 8px; }
+    .build-panel h3 { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.4; }
+    .build-section-row { display: grid; grid-template-columns: 120px minmax(0, 1fr); align-items: center; gap: 12px; }
+    .build-section-row > span { color: var(--muted); font-size: 12px; }
+    .section-map { display: grid; gap: 12px; }
+    .build-notes { display: grid; gap: 8px; }
     .build-module-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-    .build-module { padding: 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 11px; overflow-wrap: anywhere; }
-    .build-module.is-main { color: var(--faint); background: var(--panel); }
+    .build-module { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-raised); font: 12px/1.5 ui-monospace, monospace; overflow-wrap: anywhere; }
+    .build-module.is-main { color: var(--faint); background: transparent; }
     .build-module:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
-    .build-section-row { display: grid; grid-template-columns: 85px minmax(0, 1fr); align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
-    .build-section-row span { overflow-wrap: anywhere; font-size: 11px; }
-    .build-section-row select { width: 100%; }
-    .build-formatting { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 10px; font-weight: 600; }
-    .build-formatting select { min-width: 0; flex: 1; }
-    .build-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, .46fr); gap: 14px; }
-    .section-map { display: grid; gap: 8px; }
+    .build-output-fields { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 12px; }
+    .build-download { width: 100%; }
+    .build-download:disabled { cursor: wait; }
+    .build-status { min-height: 18px; overflow-wrap: anywhere; }
+    .field-heading { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; }
+    #build-modules-help-button { anchor-name: --build-modules-help; }
+    #build-modules-help { position-anchor: --build-modules-help; }
+    #build-module-lookup-help-button { anchor-name: --build-module-lookup-help; }
+    #build-module-lookup-help { position-anchor: --build-module-lookup-help; }
 
-    .stack { display: grid; gap: 14px; }
-    .sub-card { padding: 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-raised); }
-    .sub-card h4 { margin: 0 0 11px; font-size: 10px; }
     .tree { padding: 10px; border-radius: 7px; color: var(--muted); background: #0b0b12; font-size: 9px; line-height: 1.9; }
     .tree b { color: var(--cyan); font-weight: 500; }
 
-    .export-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .export-card { padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
-    .export-card.primary { border-color: rgba(255, 47, 115, .45); background: linear-gradient(145deg, rgba(255, 47, 115, .09), transparent 60%), var(--panel); }
-    .export-card h3 { margin: 0 0 7px; font-size: 14px; }
-    .export-card p { margin: 0 0 17px; color: var(--muted); font: 11px/1.5 system-ui, sans-serif; }
-    .export-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .primary-button { border-color: var(--pink-hot); color: white; background: var(--pink-hot); font-weight: 700; }
     .secondary-button { color: var(--cyan); }
-
-    .batch-list { display: grid; gap: 7px; margin-top: 17px; }
-    .batch-item { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 11px; border-radius: 7px; background: #0b0b12; font-size: 9px; }
-    .status-ok { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px rgba(116,246,167,.4); }
-    .status-error { width: 7px; height: 7px; border-radius: 50%; background: var(--pink-hot); box-shadow: 0 0 8px rgba(255,47,115,.4); }
-    .batch-item span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .batch-item small { color: var(--faint); }
 
     footer { display: flex; gap: 22px; align-items: center; justify-content: space-between; padding: 0 10px; color: var(--faint); font-size: 9px; }
     footer nav { display: flex; gap: 18px; }
@@ -415,7 +432,11 @@
       background: #15151f;
       box-shadow: 0 30px 90px rgba(0,0,0,.7);
     }
-    .listing-dialog { width: min(1100px, calc(100vw - 36px)); max-height: calc(100dvh - 36px); }
+    .listing-dialog { font: 13px/1.5 system-ui, sans-serif; width: min(1100px, calc(100vw - 36px)); max-height: calc(100dvh - 36px); }
+    .listing-dialog .card-copy { font-size: 12px; line-height: 1.5; }
+    .listing-dialog .field > span { color: var(--muted); font-size: 12px; letter-spacing: normal; text-transform: none; }
+    .listing-dialog input, .listing-dialog select { min-width: 0; font-size: 13px; font-weight: 400; }
+    .listing-dialog pre, .listing-dialog code { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; }
     .listing-dialog .card { padding: 12px 16px; border: 0; background: transparent; }
     .listing-dialog .card-title { margin-bottom: 8px; }
     .listing-dialog .help-head { padding: 10px 16px; }
@@ -442,7 +463,7 @@
       .privacy-note { max-width: 560px; }
       .card.span-4 { grid-column: span 6; }
       .card.span-8 { grid-column: span 6; }
-      .build-layout { grid-template-columns: 1fr; }
+
     }
 
     @media (max-width: 760px) {
@@ -457,13 +478,17 @@
       .section-heading { display: block; }
       .section-heading p:last-child { margin-top: 8px; }
       .card.span-4, .card.span-5, .card.span-6, .card.span-7, .card.span-8 { grid-column: 1 / -1; }
-      .transform-controls, .export-grid { grid-template-columns: 1fr; }
+      .transform-controls, .build-layout { grid-template-columns: 1fr; }
+      .build-body { padding: 16px; }
       footer { min-height: 38px; }
       footer > span { display: none; }
       .help-steps { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 520px) {
+      .build-section-row, .build-output-fields { grid-template-columns: 1fr; gap: 6px; }
+      .build-panel { padding: 12px; }
+      .tool-actions { grid-template-columns: 1fr; }
       .app-header { height: auto; min-height: 52px; flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
     }
 
@@ -534,36 +559,6 @@
           </button>
         </section>
 
-        <section class="section" id="export">
-          <div class="section-heading">
-            <div><p class="section-kicker">04 / Take home</p><h2>Export results</h2></div>
-            <p>Command outputs are downloaded separately. Selected input cartridges remain available for more CLI operations.</p>
-          </div>
-
-          <div class="export-grid">
-            <article class="export-card primary">
-              <h3>Command output files</h3>
-              <p>Download files produced by CLI commands. Original inputs stay available for additional commands.</p>
-              <div class="export-actions">
-                <button class="primary-button" id="download-all" type="button">Download all outputs</button>
-              </div>
-              <div class="batch-list" id="export-list"><p class="card-copy">Nothing to export yet.</p></div>
-            </article>
-
-            <article class="export-card">
-              <h3>Text &amp; report exports</h3>
-              <p>Save CLI listing output or statistics as files.</p>
-              <div class="export-actions">
-                <button class="secondary-button" id="export-lua" type="button">Current Lua listing</button>
-                <button class="secondary-button" id="export-stats" type="button">Stats CSV</button>
-              </div>
-              <div class="privacy-note" style="margin-top:18px;box-shadow:none">
-                <strong>◈ Still local</strong>
-                <p>Parsing, transformation, and downloads happen entirely in this tab.</p>
-              </div>
-            </article>
-          </div>
-        </section>
       </div>
     </main>
   </div>
@@ -575,14 +570,14 @@
 
   <dialog class="listing-dialog" id="build-dialog" aria-labelledby="build-dialog-title">
     <div class="help-head"><h2 id="build-dialog-title">Build a cartridge</h2><button id="close-build-dialog" type="button">Close</button></div>
-    <section class="section" id="build" data-cli-commands="build">
+    <section class="build-body" id="build" data-cli-commands="build">
           <p class="section-loading" role="status">Processing…</p>
           <p class="card-copy">Choose a selected source file for each section. Every build starts with an empty cartridge; sections set to None stay empty.</p>
 
           <div class="build-layout">
-            <div class="stack">
-            <article class="card">
-              <div class="card-title"><h3>Cartridge sections</h3></div>
+            <div class="build-stack">
+            <article class="build-panel">
+              <div class="panel-heading"><h3>Cartridge sections</h3></div>
               <p class="card-copy" id="build-scope"></p>
               <div id="build-sections" class="section-map">
                 <label class="build-section-row"><span>Lua</span><select id="build-source-lua" aria-label="Lua source"><option value="">None</option></select></label>
@@ -593,15 +588,17 @@
                 <label class="build-section-row"><span>Music</span><select id="build-source-music" aria-label="Music source"><option value="">None</option></select></label>
                 <label class="build-section-row"><span>Names to preserve</span><select id="build-source-names" aria-describedby="build-names-note"><option value="all">Preserve All Names</option><option value="" selected>None</option></select></label>
               </div>
+              <div class="build-notes">
               <p class="card-copy" id="build-names-note">Names to preserve is used when minifying. Choose a .txt name list, Preserve All Names, or None.</p>
               <p class="card-copy">Lua accepts cartridges or .lua files. Other sections accept .p8 and .p8.png cartridges.</p>
-            </article>
-            <article class="card" aria-labelledby="build-modules-title">
-              <div class="card-title" style="justify-content:flex-start;gap:6px">
-                <h3 id="build-modules-title">Lua modules</h3>
-                <button class="name-list-help" type="button" popovertarget="build-modules-help" aria-label="How are Lua modules used?" style="anchor-name: --build-modules-help">?</button>
               </div>
-              <div class="names-popover" id="build-modules-help" popover style="position-anchor: --build-modules-help">
+            </article>
+            <article class="build-panel" aria-labelledby="build-modules-title">
+              <div class="panel-heading">
+                <h3 id="build-modules-title">Lua modules</h3>
+                <button class="name-list-help" type="button" popovertarget="build-modules-help" aria-label="How are Lua modules used?" id="build-modules-help-button">?</button>
+              </div>
+              <div class="names-popover" id="build-modules-help" popover>
                 <p>The main Lua file can reference other Lua files as modules using .require(). An attempt to add the selected Lua files will be made using the Modules Lookup Template.</p>
               </div>
               <ul id="build-module-list" class="build-module-list"></ul>
@@ -609,22 +606,22 @@
             </article>
             </div>
 
-            <div class="stack">
-              <article class="sub-card" aria-labelledby="build-options-title">
-                <h4 id="build-options-title">Build Options</h4>
-                <label class="build-formatting"><span>Text Formatting</span><select id="build-text-formatting">
+            <div class="build-stack">
+              <article class="build-panel" aria-labelledby="build-options-title">
+                <h3 id="build-options-title">Build Options</h3>
+                <label class="build-section-row"><span>Text Formatting</span><select id="build-text-formatting">
                   <option value="unchanged">Unchanged</option>
                   <option value="format">Formatted</option>
                   <option value="minify">Minified</option>
                 </select></label>
-                <div class="field" style="margin-top:12px">
-                  <div class="options" style="gap:6px">
+                <div class="field">
+                  <div class="field-heading">
                     <label for="lua-path">Modules Lookup Template</label>
-                    <button class="name-list-help" type="button" popovertarget="build-module-lookup-help" aria-label="How do module lookup templates work?" style="anchor-name: --build-module-lookup-help">?</button>
+                    <button class="name-list-help" type="button" popovertarget="build-module-lookup-help" aria-label="How do module lookup templates work?" id="build-module-lookup-help-button">?</button>
                   </div>
                   <input id="lua-path" type="text" value="?;?.lua">
                 </div>
-                <div class="names-popover" id="build-module-lookup-help" popover style="position-anchor: --build-module-lookup-help">
+                <div class="names-popover" id="build-module-lookup-help" popover>
                   <strong>Finding Lua modules</strong>
                   <p>Lookup templates tell the build how to find a selected Lua file referenced by <code>require()</code>. Each <code>?</code> is replaced with the module name. Separate patterns with semicolons.</p>
                   <p>With the default <code>?;?.lua</code>, <code>require("enemies")</code> tries <code>enemies</code>, then <code>enemies.lua</code>.</p>
@@ -632,14 +629,14 @@
                 </div>
               </article>
 
-              <article class="sub-card">
-                <h4>Output cartridge</h4>
-                <div class="field-row">
+              <article class="build-panel">
+                <h3>Output cartridge</h3>
+                <div class="build-output-fields">
                   <label class="field"><span>Filename</span><input id="build-output-name" type="text" value="game_build"></label>
                   <label class="field"><span>Format</span><select id="build-output-format"><option>.p8.png</option><option>.p8</option></select></label>
                 </div>
-                <button class="primary-button" id="preview-build" type="button" style="width:100%;margin-top:12px">Build and Download</button>
-                <p class="card-copy" id="build-status" role="status" aria-live="polite" style="margin:10px 0 0">Not built yet.</p>
+                <button class="primary-button build-download" id="preview-build" type="button">Build and Download</button>
+                <p class="card-copy build-status" id="build-status" role="status" aria-live="polite">Not built yet.</p>
               </article>
             </div>
           </div>

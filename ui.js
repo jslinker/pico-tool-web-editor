@@ -3,7 +3,7 @@
 
   const api = window.PicoToolWeb;
   const state = {
-    selected: new Set(), selectionAnchor: null, cartridges: [], active: -1, supportFiles: [], modules: [], buildFiles: [], outputs: [],
+    selected: new Set(), selectionAnchor: null, cartridges: [], active: -1, supportFiles: [], modules: [], buildFiles: [],
   };
 
   const byId = (id) => document.getElementById(id);
@@ -133,22 +133,6 @@
     byId("copy-state").textContent = "Local workspace";
   }
 
-  function renderExports() {
-    const target = byId("export-list");
-    target.replaceChildren();
-    const entries = state.outputs;
-    if (!entries.length) target.innerHTML = '<p class="card-copy">Nothing to export yet.</p>';
-    for (const file of entries) {
-      const row = document.createElement("div");
-      row.className = "batch-item";
-      row.innerHTML = '<i class="status-ok"></i><span></span><small></small><button type="button">Download</button>';
-      row.querySelector("span").textContent = file.name;
-      row.querySelector("small").textContent = sizeText(file.bytes.length);
-      row.querySelector("button").addEventListener("click", () => download(file.name, file.bytes));
-      target.append(row);
-    }
-  }
-
   function renderSupportFiles() {
     for (const id of ["transform-name-list"]) {
       const select = byId(id);
@@ -260,7 +244,6 @@
 
   function renderAll() {
     renderFiles();
-    renderExports();
     renderSupportFiles();
     refreshStats();
     refreshInspection().catch((error) => announce(error.message, true));
@@ -387,10 +370,7 @@
   }
 
   function saveTransform(result) {
-    state.outputs = state.outputs.filter((file) => file.name !== result.output.name);
-    state.outputs.push(result.output);
     download(result.output.name, result.output.bytes);
-    renderExports();
   }
 
   const buildRoles = [["lua", "Lua"], ["gfx", "GFX"], ["gff", "GFF (flags)"], ["map", "Map"], ["sfx", "SFX"], ["music", "Music"]];
@@ -468,14 +448,7 @@
       ? `Ready · ${response.results[0].stats.tokenCount} tokens · ${sizeText(response.results[0].output.bytes.length)}`
       : errorText(response);
     byId("build-status").style.color = response.ok ? "var(--green)" : "var(--pink)";
-    if (response.ok) {
-      state.outputs = state.outputs.filter((file) => file.name !== response.results[0].output.name);
-      state.outputs.push(response.results[0].output);
-      download(response.results[0].output.name, response.results[0].output.bytes);
-      renderExports();
-    } else {
-      renderExports();
-    }
+    if (response.ok) download(response.results[0].output.name, response.results[0].output.bytes);
   }
 
   byId("close-lua-dialog").addEventListener("click", () => byId("lua-dialog").close());
@@ -619,18 +592,6 @@
       byId("listing-share").open = false;
       byId("listing-share").querySelector("summary").focus();
     }
-  });
-  byId("export-lua").addEventListener("click", async () => {
-    const file = inspectionFile(); if (!file) return;
-    const active = { working: file };
-    const command = selectedValue("lua-view") === "raw" ? "listrawlua" : "listlua";
-    const response = await api.cli[command]({ cartridges: [active.working], showLineNumbers: byId("lua-line-numbers").checked,
-      pureLua: command === "listlua" && byId("lua-pure").checked });
-    if (response.ok) download(listingFilename(active.working), response.results[0].text, "text/plain");
-  });
-  byId("export-stats").addEventListener("click", () => byId("download-csv").click());
-  byId("download-all").addEventListener("click", () => {
-    for (const file of state.outputs) download(file.name, file.bytes);
   });
   byId("preview-build").addEventListener("click", runWithLoading("build", previewBuild));
   byId("build-source-lua").addEventListener("change", renderBuildModules);

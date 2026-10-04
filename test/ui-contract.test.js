@@ -162,7 +162,8 @@ test("inspection forwards raw listing flags and CSV action invokes stats with cs
   h.radios.set("lua-view", "normalized");
   h.get("lua-pure").checked = true;
   h.change("lua-view");
-  await h.get("export-lua").click();
+  await h.change("lua-view");
+  await h.get("download-lua").click();
   const luaExport = h.calls.filter(([command]) => command === "listlua").at(-1)[1];
   assert.equal(luaExport.showLineNumbers, true);
   assert.equal(luaExport.pureLua, true);
@@ -189,7 +190,6 @@ test("bundled engine resolves chained modules imported through Add Files", async
   assert.match(h.get("build-status").textContent, /^Ready/);
   assert.equal(h.downloads.length, 1);
   assert.equal(h.downloads[0][0], "nested.p8");
-  assert.equal(h.get("export-list").children.length, 1);
 
 });
 
