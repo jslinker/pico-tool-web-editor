@@ -212,6 +212,8 @@
     rows.replaceChildren();
     setBusy("stats", Boolean(files.length));
     byId("download-csv").disabled = !files.length;
+    byId("stats-share").open = false;
+    byId("stats-share-status").textContent = "";
     const scope = files.length ? `Showing ${files.length} selected cartridge${files.length === 1 ? "" : "s"}: ${files.map((file) => file.name).join(", ")}.`
       : "Select cartridges in the file list to show statistics.";
     const note = skipped ? ` ${skipped} selected Lua/text file${skipped === 1 ? " is" : "s are"} excluded; Stats supports cartridges only.` : "";
@@ -570,7 +572,23 @@
       byId("transform-share").querySelector("summary").focus();
     }
   });
-  byId("download-csv").addEventListener("click", async () => { const response = await statsFor(); if (response.results.length) download("picotool-stats.csv", response.csv, "text/csv"); if (response.errors.length) announce(errorText(response), true); });
+  byId("download-csv").addEventListener("click", async () => {
+    const response = await statsFor();
+    if (response.results.length) {
+      download("picotool-stats.csv", response.csv, "text/csv");
+      byId("stats-share-status").textContent = "Download started.";
+    }
+    if (response.errors.length) announce(errorText(response), true);
+    byId("stats-share").open = false;
+  });
+  byId("stats-share").addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && byId("stats-share").open) {
+      event.preventDefault();
+      event.stopPropagation();
+      byId("stats-share").open = false;
+      byId("stats-share").querySelector("summary").focus();
+    }
+  });
   byId("copy-lua").addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(byId("lua-preview").textContent);

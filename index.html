@@ -108,12 +108,6 @@
       box-shadow: 0 12px 36px rgba(0, 0, 0, .32);
     }
 
-    .window-controls { display: flex; gap: 8px; margin-right: 15px; }
-    .window-controls i { width: 11px; height: 11px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.16); }
-    .window-controls i:nth-child(1) { background: #ff5f57; }
-    .window-controls i:nth-child(2) { background: #febc2e; }
-    .window-controls i:nth-child(3) { background: #28c840; }
-
     .brand {
       display: flex;
       gap: 12px;
@@ -199,7 +193,6 @@
     .sidebar-title { margin: 0 8px 14px; color: var(--muted); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
     .file-button { width: 100%; border-color: var(--pink-hot); color: #fff; background: var(--pink-hot); font-weight: 700; }
     .file-button:hover { background: #e92768; }
-    .drop-note { margin: 10px 4px 22px; color: var(--faint); text-align: center; font-size: 10px; }
 
     .file-toolbar { display: flex; align-items: center; gap: 8px; }
     .file-toolbar .file-button { flex: 1; }
@@ -331,7 +324,9 @@
     .listing-share summary svg { width: 16px; height: 16px; }
     .share-options { position: absolute; left: 0; top: calc(100% + 5px); display: grid; gap: 4px; width: 180px; padding: 6px; border: 1px solid var(--line-bright); border-radius: 7px; background: var(--panel); z-index: 20; box-shadow: 0 8px 24px #0008; }
     .share-options button { text-align: left; font-size: 11px; }
-    #listing-share-status, #transform-share-status { color: var(--muted); font: 11px/1.4 system-ui, sans-serif; }
+    .stats-share-actions { display: flex; align-items: center; gap: 10px; }
+    .stats-share .share-options { right: 0; left: auto; }
+    #listing-share-status, #transform-share-status, #stats-share-status { color: var(--muted); font: 11px/1.4 system-ui, sans-serif; }
     .listing-editor .code-preview { margin: 0; border: 0; border-radius: 0 0 8px 8px; }
     .code-preview {
       min-height: 178px;
@@ -468,7 +463,7 @@
     @media (max-width: 760px) {
       body { height: auto; min-height: 100vh; padding: 0; display: block; overflow: visible; }
       .app-header { position: sticky; top: 0; height: 52px; border-radius: 0; }
-      .window-controls, .document-title { display: none; }
+      .document-title { display: none; }
       .workspace { display: block; border-inline: 0; border-radius: 0; }
       .sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
       .file-list { grid-template-columns: 1fr 1fr; }
@@ -499,7 +494,6 @@
 </head>
 <body>
   <header class="app-header">
-    <span class="window-controls" aria-hidden="true"><i></i><i></i><i></i></span>
     <a class="brand" href="#top" aria-label="PICO Tool home">
       <span class="brand-mark">P8</span>
       <span>PICO Tool<small>cartridge workshop</small></span>
@@ -519,7 +513,6 @@
         <button id="file-help-button" class="file-help-button" type="button" aria-label="Allowed file types" aria-haspopup="dialog">?</button>
       </div>
       <input id="file-input" type="file" accept=".p8,.p8.png,.lua,.txt" multiple hidden>
-      <p class="drop-note">or drop files here<br>Click to select · ⌘/Ctrl-click for multiple · Shift-click for a range</p>
       <div class="file-list" id="file-list" aria-label="Added files"></div>
     </aside>
 
@@ -529,7 +522,7 @@
           <div class="card-grid">
             <article class="card span-12" id="stats-section" data-cli-commands="stats">
               <p class="section-loading" role="status">Processing…</p>
-              <div class="card-title"><h3>Stats</h3><button class="secondary-button" id="download-csv" type="button" disabled>Download selected CSV</button></div>
+              <div class="card-title"><h3>Stats</h3><div class="stats-share-actions"><details class="listing-share stats-share" id="stats-share"><summary aria-label="Share statistics" title="Save statistics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 15V3m-4 4 4-4 4 4M5 12v8h14v-8"/></svg></summary><div class="share-options"><button id="download-csv" type="button" disabled>Save CSV to disk</button></div></details><span id="stats-share-status" role="status" aria-live="polite"></span></div></div>
               <p class="card-copy" id="stats-summary" aria-live="polite">Select cartridges in the file list to show statistics.</p>
               <div class="stats-scroll">
                 <table class="stats-table" aria-label="Statistics for selected cartridges">
@@ -562,8 +555,8 @@
   </div>
 
   <footer>
-    <span id="workspace-status">0 cartridges · processing stays on this device</span>
-    <nav aria-label="Project links"><a href="README.md">Project notes</a><a href="https://github.com/jslinker/picotool-js">Engine</a><a href="LICENSE">MIT license</a></nav>
+    <span id="workspace-status">0 cartridges</span>
+    <nav aria-label="Project links"><a href="https://github.com/jslinker/picotool-js">Engine</a><a href="LICENSE">MIT license</a><a href="https://github.com/dansanderson/picotool">Based on picotool by Dan Sanderson</a></nav>
   </footer>
 
   <dialog class="listing-dialog" id="build-dialog" aria-labelledby="build-dialog-title">
@@ -794,7 +787,7 @@ update_player
         <div class="help-step"><b>Build</b><span>Assemble code, graphics, map, flags, SFX, and music into a cart.</span></div>
         <div class="help-step"><b>Downloads</b><span>Download command output files, Lua listings, or statistics.</span></div>
       </div>
-      <div class="help-foot"><span>◆ Files stay in this browser tab.</span><a href="README.md">Read project notes →</a></div>
+      <div class="help-foot"><span>◆ Files stay in this browser tab.</span></div>
     </div>
   </dialog>
   <script src="vendor/picotool.js"></script>
